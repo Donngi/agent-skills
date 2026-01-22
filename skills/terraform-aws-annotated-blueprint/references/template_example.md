@@ -19,7 +19,7 @@
 #   - https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group
 #
 # Provider Version: 6.28.0
-# Generated: {YYYY-MM-DD}
+# Generated: 2026-01-22
 # NOTE: 本テンプレートは生成時点の情報に基づきAIが生成しています。
 #       情報が古くなっている可能性、誤りを含む可能性があるため、
 #       正確な最新仕様は公式ドキュメントを参照してください。
@@ -197,8 +197,9 @@ resource "aws_cloudwatch_log_group" "example" {
 #
 # Provider Version: {version}
 # Generated: {YYYY-MM-DD}
-# NOTE: このテンプレートは生成時点の情報に基づいています。最新の仕様については公式ドキュメントをご確認ください。
-#
+# NOTE: 本テンプレートは生成時点の情報に基づきAIが生成しています。
+#       情報が古くなっている可能性、誤りを含む可能性があるため、
+#       正確な最新仕様は公式ドキュメントを参照してください。#
 #---------------------------------------------------------------
 ```
 

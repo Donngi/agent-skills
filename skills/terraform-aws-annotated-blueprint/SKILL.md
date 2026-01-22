@@ -12,7 +12,7 @@ description: 全プロパティに詳細な解説が付いたTerraform AWSテン
 以下のMCP serverが必須。利用不可の場合は警告・利用しているAI Agentごとの設定方法を表示し作業を終了する。
 
 **必須MCP server:**
-- `awslabs.terraform-mcp-server` - Terraformスキーマ取得用
+- `awslabs.terraform-mcp-server` - AWSプロバイダードキュメント検索・AWS Well-Architectedガイダンス・セキュリティスキャン
 - `aws-knowledge-mcp-server` - AWS公式ドキュメント参照用
 
 **MCP server設定例:**
@@ -32,6 +32,16 @@ description: 全プロパティに詳細な解説が付いたTerraform AWSテン
 }
 ```
 
+## 重要な原則
+
+**スキーマが信頼の源泉（Source of Truth）**
+
+`terraform providers schema -json` から取得したスキーマを正とする。MCPサーバーのドキュメントはスキーマに含まれない補足情報（説明文、設定可能な値の詳細等）の取得に使用する。
+
+**Web検索の禁止**
+
+インターネット検索は使用しない。情報取得はMCPサーバーのみを使用する。
+
 ## ワークフロー
 
 ### 1. 入力の理解
@@ -40,14 +50,13 @@ description: 全プロパティに詳細な解説が付いたTerraform AWSテン
 
 ### 2. 作業計画の作成
 
-チェックボックス付きの計画書を `{プロジェクトルート}/.local/terraform-aws-annotated-blueprint/` に出力する。
+チェックボックス付きの計画書を `{プロジェクトルート}/.local/terraform-aws-annotated-blueprint/${provider_version}/` に出力する。
 
 **計画書の必須内容:**
-- providers.tfの初期化（version指定がなければTerraform Registry APIで最新取得）
-- terraform init
-- terraform providers schema -jsonでスキーマ取得
+- スキーマ取得（キャッシュがなければ実行）
 - 構築が必要なリソース一覧の生成
 - 各リソースの全プロパティをカテゴリ別にannotation付きで記載
+- 抜け漏れ検証
 
 **質問タグのルール:**
 独自の判断はせず、意思決定が必要な際は必ずユーザーに質問をする。
@@ -69,13 +78,53 @@ description: 全プロパティに詳細な解説が付いたTerraform AWSテン
 
 ユーザーから承認を得てから作業を開始する。計画書のチェックボックスを更新しながら進める。
 
-## 情報収集方法
+## スキーマ取得方法
 
-**使用するMCP server:**
-- `awslabs.terraform-mcp-server` - Terraformスキーマの取得
-- `aws-knowledge-mcp-server` - AWS公式ドキュメントの参照
+`${プロジェクトルート}/.local/terraform-aws-annotated-blueprint/${provider_version}/schema.json` が既に存在するか確認:
 
-インターネット検索による不正確な情報取得は行わず、AWS公式ドキュメントのみを参照する。
+```bash
+SCHEMA_FILE="${PROJECT_ROOT}/.local/terraform-aws-annotated-blueprint/${provider_version}/schema.json"
+if [[ -f "$SCHEMA_FILE" ]]; then
+  echo "スキーマファイルが存在します。スキップします。"
+else
+  echo "スキーマを取得します..."
+  # 以下の手順を実行
+fi
+```
+
+**スキーマが存在しない場合:**
+
+1. プロバイダー設定を作成:
+```hcl
+# ${プロジェクトルート}/.local/terraform-aws-annotated-blueprint/${provider_version}/providers.tf
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "{provider_version}"
+    }
+  }
+}
+```
+
+2. スキーマを取得:
+```bash
+cd ${プロジェクトルート}/.local/terraform-aws-annotated-blueprint/${provider_version}
+terraform init
+terraform providers schema -json > schema.json
+```
+
+**スキーマからリソース情報を抽出:**
+```bash
+jq '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["{リソース名}"]' schema.json
+```
+
+**ドキュメント・ガイダンスの取得:**
+- `awslabs.terraform-mcp-server`:
+  - AWSプロバイダードキュメント・実装例の検索
+  - AWS Well-Architectedガイダンスの参照（設計判断に活用）
+  - Checkovによるセキュリティスキャン（生成後の検証）
+- `aws-knowledge-mcp-server` - AWS公式ドキュメント参照
 
 ## テンプレート生成ルール
 
@@ -116,6 +165,7 @@ description: 全プロパティに詳細な解説が付いたTerraform AWSテン
 
 **テンプレートに含める属性（入力可能）:**
 - `optional: true` を持つ属性
+- `required: true` を持つ属性
 
 **テンプレートから除外する属性（computed only）:**
 - `computed: true` かつ `optional` がない属性
@@ -133,6 +183,20 @@ jq -r '.block.attributes | to_entries[] | select(.value.computed == true and .va
 ### フォーマット
 
 テンプレートの詳細なフォーマットは [references/template_example.md](references/template_example.md) を参照。
+
+### 抜け漏れ検証
+
+各リソースのテンプレート生成後、スキーマの属性一覧と照合:
+
+```bash
+# スキーマの入力可能属性一覧
+jq -r '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["{リソース名}"].block.attributes | to_entries[] | select(.value.optional == true) | .key' schema.json | sort
+
+# テンプレートに含まれる属性一覧
+grep -E "^\s{2}[a-z_]+ =" {リソース名}.tf | sed 's/=.*//' | tr -d ' ' | sort
+```
+
+両者を比較し、差分がないことを確認。
 
 ## ファイル分割ルール
 
