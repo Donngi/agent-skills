@@ -32,6 +32,13 @@ description: 全プロパティに詳細な解説が付いたTerraform AWSテン
 }
 ```
 
+**MCP serverの役割・使い所**
+- `awslabs.terraform-mcp-server`:
+  - AWSプロバイダードキュメント・実装例の検索
+  - AWS Well-Architectedガイダンスの参照（設計判断に活用）
+  - Checkovによるセキュリティスキャン（生成後の検証）
+- `aws-knowledge-mcp-server` - AWS公式ドキュメント参照
+
 ## 重要な原則
 
 **スキーマが信頼の源泉（Source of Truth）**
@@ -118,13 +125,6 @@ terraform providers schema -json > schema.json
 ```bash
 jq '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["{リソース名}"]' schema.json
 ```
-
-**ドキュメント・ガイダンスの取得:**
-- `awslabs.terraform-mcp-server`:
-  - AWSプロバイダードキュメント・実装例の検索
-  - AWS Well-Architectedガイダンスの参照（設計判断に活用）
-  - Checkovによるセキュリティスキャン（生成後の検証）
-- `aws-knowledge-mcp-server` - AWS公式ドキュメント参照
 
 ## テンプレート生成ルール
 
