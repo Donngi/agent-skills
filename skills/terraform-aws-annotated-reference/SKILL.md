@@ -49,6 +49,23 @@ description: 単一のTerraform AWSリソースに対する全プロパティ解
 ユーザーから以下を取得:
 - **リソース名** (必須): `aws_cloudwatch_log_group` など
 - **AWS Providerバージョン** (任意): 指定がなければ最新バージョンを使用
+- **出力先ディレクトリ** (任意): 指定がなければ `${プロジェクトルート}/.local/terraform-aws-annotated-reference` を使用
+
+**入力例:**
+
+自然言語での指定:
+```
+aws_s3_bucketのテンプレートを作成して
+aws_lambda_functionのテンプレートを ./terraform/refs に出力して
+aws_iam_role（v5.80.0）のリファレンスを ./docs/terraform に作成して
+```
+
+引数形式での指定:
+```
+/terraform-aws-annotated-reference aws_s3_bucket
+/terraform-aws-annotated-reference aws_lambda_function --output ./terraform/refs
+/terraform-aws-annotated-reference aws_iam_role --version 5.80.0 --output ./docs/terraform
+```
 
 バージョン未指定時はTerraform Registry APIから最新バージョンを取得:
 ```bash
@@ -57,10 +74,11 @@ curl -s "https://registry.terraform.io/v1/providers/hashicorp/aws" | jq -r '.ver
 
 ### 2. スキーマの存在確認と取得
 
-`${プロジェクトルート}/.local/terraform-aws-annotated-reference/${provider_version}/schema.json` が既に存在するか確認:
+`${出力先ディレクトリ}/${provider_version}/schema.json` が既に存在するか確認:
 
 ```bash
-SCHEMA_FILE="${PROJECT_ROOT}/.local/terraform-aws-annotated-reference/${provider_version}/schema.json"
+OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/.local/terraform-aws-annotated-reference}"
+SCHEMA_FILE="${OUTPUT_DIR}/${provider_version}/schema.json"
 if [[ -f "$SCHEMA_FILE" ]]; then
   echo "スキーマファイルが存在します。スキップします。"
 else
@@ -71,10 +89,10 @@ fi
 
 #### 2a. スキーマ取得用Terraform設定の作成（スキーマが存在しない場合のみ）
 
-`${プロジェクトルート}/.local/terraform-aws-annotated-reference/${provider_version}/` ディレクトリにプロバイダー設定を作成:
+`${出力先ディレクトリ}/${provider_version}/` ディレクトリにプロバイダー設定を作成:
 
 ```hcl
-# ${プロジェクトルート}/.local/terraform-aws-annotated-reference/${provider_version}/providers.tf
+# ${出力先ディレクトリ}/${provider_version}/providers.tf
 terraform {
   required_providers {
     aws = {
@@ -88,7 +106,7 @@ terraform {
 #### 2b. プロバイダースキーマの取得（スキーマが存在しない場合のみ）
 
 ```bash
-cd ${プロジェクトルート}/.local/terraform-aws-annotated-reference/${provider_version}
+cd ${OUTPUT_DIR}/${provider_version}
 terraform init
 terraform providers schema -json > schema.json
 ```
@@ -182,9 +200,10 @@ grep -E "^\s{2}[a-z_]+ =" {リソース名}.tf | sed 's/=.*//' | tr -d ' ' | sor
 
 ### 8. ファイル出力
 
-出力先: `${プロジェクトルート}/.local/terraform-aws-annotated-reference/${provider_version}/${リソース名}.tf`
+出力先: `${出力先ディレクトリ}/${provider_version}/${リソース名}.tf`
 
-例: `./.local/terraform-aws-annotated-reference/6.28.0/aws_cloudwatch_log_group.tf`
+例（デフォルト）: `./.local/terraform-aws-annotated-reference/6.28.0/aws_cloudwatch_log_group.tf`
+例（カスタム）: `./terraform/references/6.28.0/aws_cloudwatch_log_group.tf`
 
 ## 品質要件
 
