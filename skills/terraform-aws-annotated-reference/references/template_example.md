@@ -173,6 +173,7 @@ resource "aws_cloudwatch_log_group" "example" {
   #   {機能の簡単な説明}
   #   - {公式ドキュメントのURL}
   # 注意: {注意事項}（必要な場合のみ）
+  # 参考: {AWS公式ドキュメントへのリンク。パラメータに関連する機能の説明、上記内容の確認元等を記載}
   property_name = "value"
 ```
 
