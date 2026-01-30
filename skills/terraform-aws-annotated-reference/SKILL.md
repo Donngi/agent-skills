@@ -38,9 +38,14 @@ description: 単一のTerraform AWSリソースに対する全プロパティ解
 
 `terraform providers schema -json` から取得したスキーマを正とする。MCPサーバーのドキュメントはスキーマに含まれない補足情報（説明文、設定可能な値の詳細等）の取得に使用する。
 
-**Web検索の禁止**
+**AWS公式の情報のみを利用**
 
-インターネット検索は使用しない。情報取得はMCPサーバーのみを使用する。
+インターネット検索は使用しない。情報取得はMCPサーバーのみを使用し、AWSの公式情報のみを利用する。
+
+## 動作上の禁止事項
+
+- 必須mcpサーバー以外を利用したインターネット検索
+- ワークフローに記載されていない中間ファイルの生成
 
 ## ワークフロー
 
@@ -49,7 +54,7 @@ description: 単一のTerraform AWSリソースに対する全プロパティ解
 ユーザーから以下を取得:
 - **リソース名** (必須): `aws_cloudwatch_log_group` など
 - **AWS Providerバージョン** (任意): 指定がなければ最新バージョンを使用
-- **出力先ディレクトリ** (任意): 指定がなければ `${プロジェクトルート}/.local/terraform-aws-annotated-reference` を使用
+- **出力先ディレクトリ** (任意): 指定がなければ `${PROJECT_ROOT}/.local/terraform-aws-annotated-reference/${PROVIDER_VERSION}` を使用
 
 **入力例:**
 
@@ -74,11 +79,11 @@ curl -s "https://registry.terraform.io/v1/providers/hashicorp/aws" | jq -r '.ver
 
 ### 2. スキーマの存在確認と取得
 
-`${出力先ディレクトリ}/${provider_version}/schema.json` が既に存在するか確認:
+`.local/terraform-aws-annotated-reference/${provider_version}/schema.json` が既に存在するか確認:
 
 ```bash
-OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/.local/terraform-aws-annotated-reference}"
-SCHEMA_FILE="${OUTPUT_DIR}/${provider_version}/schema.json"
+WORK_DIR="${PROJECT_ROOT}/.local/terraform-aws-annotated-reference"
+SCHEMA_FILE="${WORK_DIR}/${provider_version}/schema.json"
 if [[ -f "$SCHEMA_FILE" ]]; then
   echo "スキーマファイルが存在します。スキップします。"
 else
@@ -89,10 +94,10 @@ fi
 
 #### 2a. スキーマ取得用Terraform設定の作成（スキーマが存在しない場合のみ）
 
-`${出力先ディレクトリ}/${provider_version}/` ディレクトリにプロバイダー設定を作成:
+`.local/terraform-aws-annotated-reference/${provider_version}/` ディレクトリにプロバイダー設定を作成:
 
 ```hcl
-# ${出力先ディレクトリ}/${provider_version}/providers.tf
+# .local/terraform-aws-annotated-reference/${provider_version}/providers.tf
 terraform {
   required_providers {
     aws = {
@@ -106,7 +111,7 @@ terraform {
 #### 2b. プロバイダースキーマの取得（スキーマが存在しない場合のみ）
 
 ```bash
-cd ${OUTPUT_DIR}/${provider_version}
+cd .local/terraform-aws-annotated-reference/${provider_version}
 terraform init
 terraform providers schema -json > schema.json
 ```
@@ -116,7 +121,7 @@ terraform providers schema -json > schema.json
 スキーマJSONから対象リソースの情報を抽出:
 
 ```bash
-jq '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["{リソース名}"]' schema.json
+jq '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["${RESOURCE_NAME}"]' schema.json > "schema_${RESOURCE_NAME}.json"
 ```
 
 抽出対象:
@@ -138,10 +143,10 @@ jq '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["{
 **分類確認コマンド:**
 ```bash
 # 入力可能な属性一覧
-jq -r '.block.attributes | to_entries[] | select(.value.optional == true) | .key' <<< "$SCHEMA"
+jq -r '.block.attributes | to_entries[] | select(.value.optional == true) | .key' "schema_${RESOURCE_NAME}.json"
 
 # computed only属性一覧
-jq -r '.block.attributes | to_entries[] | select(.value.computed == true and .value.optional != true) | .key' <<< "$SCHEMA"
+jq -r '.block.attributes | to_entries[] | select(.value.computed == true and .value.optional != true) | .key' "schema_${RESOURCE_NAME}.json"
 ```
 
 ### 5. ドキュメント情報の取得
@@ -192,10 +197,16 @@ jq -r '.block.attributes | to_entries[] | select(.value.computed == true and .va
 
 ```bash
 # スキーマの入力可能属性一覧
-jq -r '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["{リソース名}"].block.attributes | to_entries[] | select(.value.optional == true) | .key' schema.json | sort
+jq -r '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["${RESOURCE_NAME}"].block.attributes | to_entries[] | select(.value.optional == true) | .key' schema.json | sort
 
 # テンプレートに含まれる属性一覧
-grep -E "^\s{2}[a-z_]+ =" {リソース名}.tf | sed 's/=.*//' | tr -d ' ' | sort
+grep -E "^  [a-z_]+ =" "${RESOURCE_NAME}.tf" | sed 's/=.*//' | tr -d ' ' | sort
+
+# ネストブロック一覧（スキーマ）
+jq -r '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["${RESOURCE_NAME}"].block.block_types | keys[]' schema.json | sort
+
+# ネストブロック一覧（テンプレート）
+grep -E "^  [a-z_]+ \{" "${RESOURCE_NAME}.tf" | sed 's/ {.*//' | tr -d ' ' | sort
 ```
 
 両者を比較し、差分がないことを確認。
@@ -207,10 +218,15 @@ grep -E "^\s{2}[a-z_]+ =" {リソース名}.tf | sed 's/=.*//' | tr -d ' ' | sor
 
 ### 9. ファイル出力
 
-出力先: `${出力先ディレクトリ}/${provider_version}/${リソース名}.tf`
+出力先: `${出力先ディレクトリ}/${リソース名}.tf`
 
-例（デフォルト）: `./.local/terraform-aws-annotated-reference/6.28.0/aws_cloudwatch_log_group.tf`
-例（カスタム）: `./terraform/references/6.28.0/aws_cloudwatch_log_group.tf`
+例（デフォルト）: 
+出力先ディレクトリ = 指定なし
+`${PROJECT_ROOT}/.local/terraform-aws-annotated-reference/${PROVIDER_VERSION}/aws_cloudwatch_log_group.tf`
+
+例（カスタム）: 
+出力先ディレクトリ = ${PROJECT_ROOT}/terraform/references
+`${PROJECT_ROOT}/terraform/references/aws_cloudwatch_log_group.tf`
 
 ## 品質要件
 
@@ -218,3 +234,4 @@ grep -E "^\s{2}[a-z_]+ =" {リソース名}.tf | sed 's/=.*//' | tr -d ' ' | sor
 2. **網羅性**: スキーマの全入力可能属性（attributes + block_types）を記載
 3. **検証可能性**: 記載するURLは全て実在するものであること
 4. **除外の明確性**: computed only属性はAttributes Referenceセクションに記載
+5. **統一フォーマット**: references/template_example.md のフォーマットを厳守
