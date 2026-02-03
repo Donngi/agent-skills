@@ -42,9 +42,9 @@ AI Agentで利用可能なスキル集です。
 
 ## インストール方法
 
-[add-skill](https://github.com/vercel-labs/add-skill)を使用してスキルをインストールできます。
+[skills](https://github.com/vercel-labs/skills)を使用してスキルをインストールできます。
 
 ```bash
-npx add-skill https://github.com/Donngi/agent-skills
+npx skills add Donngi/agent-skills
 ```
 
