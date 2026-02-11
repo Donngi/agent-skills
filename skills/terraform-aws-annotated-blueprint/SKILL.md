@@ -184,20 +184,98 @@ jq -r '.block.attributes | to_entries[] | select(.value.computed == true and .va
 ### フォーマット
 
 テンプレートの詳細なフォーマットは [references/template_example.md](references/template_example.md) を参照。
+ネストブロックを含むリソースは [references/nested_block_example.md](references/nested_block_example.md) も参照。
+
+### 6.1 フォーマットルール
+
+以下のルールを厳守すること。違反はvalidate_template.shで自動検出される。
+
+**FR-1: 全コメント日本語**
+```hcl
+# ✅ OK
+# 設定内容: ロググループの名前を指定します。
+
+# ❌ NG
+# Description: The name of the log group.
+```
+
+**FR-2: 区切り線は `#-------` のみ（`====` 禁止）**
+```hcl
+# ✅ OK
+#---------------------------------------------------------------
+# 基本設定
+#---------------------------------------------------------------
+
+# ❌ NG
+# ============================================================
+# Basic Configuration
+# ============================================================
+```
+
+**FR-3: プロパティコメントに `設定内容:`, `設定可能な値:`, `省略時:` を使用**
+```hcl
+# ✅ OK
+# name (Optional, Forces new resource)
+# 設定内容: ロググループの名前を指定します。
+# 設定可能な値: 1-512文字の文字列
+# 省略時: Terraformがランダムな一意の名前を生成します。
+
+# ❌ NG
+# name (Optional, Forces new resource)
+# Description: The name of the log group.
+# Valid values: 1-512 character string
+# Default: Terraform generates a random unique name.
+```
+
+**FR-4: 機能カテゴリ別グルーピング（Required/Optionalグルーピング禁止）**
+```hcl
+# ✅ OK: 機能別
+#-------------------------------------------------------------
+# 暗号化設定
+#-------------------------------------------------------------
+
+# ❌ NG: Required/Optionalグルーピング
+# ============================================================
+# REQUIRED ARGUMENTS
+# ============================================================
+```
+
+**FR-5: ネストブロックヘッダーも `#-----` 統一**
+ネストブロックのカテゴリ区切り線もトップレベルと同じ `#-----` 形式を使用。
+
+**FR-6: Attributes Reference 25行以内・コード例禁止**
+```hcl
+# ✅ OK
+#---------------------------------------------------------------
+# Attributes Reference (読み取り専用属性)
+#---------------------------------------------------------------
+# このリソースは以下の属性をエクスポートします:
+#
+# - arn: ロググループのARN
+# - tags_all: 継承タグを含む全タグマップ
+#---------------------------------------------------------------
+
+# ❌ NG: コード例を含む
+# output "log_group_arn" {
+#   value = aws_cloudwatch_log_group.example.arn
+# }
+```
+
+**FR-7: 使用例・ベストプラクティス等の余分なセクション禁止**
+テンプレートにはリソース定義とAttributes Referenceのみを記載。使用例、ベストプラクティス、output例等は記載しない。
 
 ### 抜け漏れ検証
 
-各リソースのテンプレート生成後、スキーマの属性一覧と照合:
+各リソースのテンプレート生成後、検証スクリプトを実行:
 
 ```bash
-# スキーマの入力可能属性一覧
-jq -r '.provider_schemas["registry.terraform.io/hashicorp/aws"].resource_schemas["{リソース名}"].block.attributes | to_entries[] | select(.value.optional == true) | .key' schema.json | sort
-
-# テンプレートに含まれる属性一覧
-grep -E "^\s{2}[a-z_]+ =" {リソース名}.tf | sed 's/=.*//' | tr -d ' ' | sort
+bash "${PROJECT_ROOT}/.claude/skills/terraform-aws-annotated-blueprint/lib/validate_template.sh" \
+  "${OUTPUT_FILE}" \
+  "${RESOURCE_NAME}" \
+  "${SCHEMA_FILE}"
 ```
 
-両者を比較し、差分がないことを確認。
+FAILが1つでもあれば、該当箇所を修正して再度検証を実行する。全項目PASSになるまで繰り返す。
 
 ## ファイル分割ルール
 
