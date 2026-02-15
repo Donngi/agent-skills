@@ -1,6 +1,7 @@
 ---
 name: terraform-aws-annotated-reference
 description: 単一のTerraform AWSリソースに対する全プロパティ解説付きリファレンステンプレートを生成する。ユーザーがリソース名（例：aws_s3_bucket, aws_lambda_function）を指定すると、Providerスキーマに基づいた正確な属性一覧とAWS公式ドキュメントに基づく解説を含むテンプレートを出力する。「aws_xxxのテンプレートを作成して」「aws_xxxの全プロパティを教えて」などのリクエストで使用。
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Skill, mcp__awslabs_terraform-mcp-server__SearchAwsProviderDocs, mcp__aws-knowledge-mcp-server__aws___search_documentation, mcp__aws-knowledge-mcp-server__aws___read_documentation
 ---
 
 # Terraform AWS Annotated Reference
