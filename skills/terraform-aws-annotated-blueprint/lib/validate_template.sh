@@ -126,7 +126,8 @@ fi
 # [6] 使用例セクション不在
 # --------------------------------------------------------------------------
 example_patterns=()
-if grep -qiE '^\s*#.*EXAMPLE' "$TEMPLATE"; then
+# セクションヘッダーとしてのEXAMPLEのみ検出（example.comやリソース名"example"は除外）
+if grep -qiE '^#\s*(EXAMPLE|Example Usage|Example Configuration)' "$TEMPLATE"; then
   example_patterns+=("EXAMPLE")
 fi
 if grep -q '使用例' "$TEMPLATE"; then
@@ -135,7 +136,7 @@ if grep -q '使用例' "$TEMPLATE"; then
     example_patterns+=("使用例")
   fi
 fi
-grep -q 'ベストプラクティス' "$TEMPLATE" && example_patterns+=("ベストプラクティス")
+grep -qE '^#\s*ベストプラクティス' "$TEMPLATE" && example_patterns+=("ベストプラクティス")
 
 if [ ${#example_patterns[@]} -gt 0 ]; then
   record_fail "FR-7" "使用例/ベストプラクティスセクションが検出されました: ${example_patterns[*]}"
@@ -164,7 +165,7 @@ if [ -f "$SCHEMA" ]; then
     record_fail "Schema" "スキーマからリソース ${RESOURCE_NAME} の属性を取得できませんでした"
   else
     # テンプレートから属性名を抽出（代入行 + コメント内の属性名定義）
-    template_attrs=$(grep -oE '^\s+#?\s*[a-z_]+\s+[=({]|^\s+[a-z_]+\s*=' "$TEMPLATE" | sed 's/[#=({].*//' | tr -d ' ' | sort -u)
+    template_attrs=$(grep -oE '^\s+#?\s*[a-z0-9_]+\s+[=({]|^\s+[a-z0-9_]+\s*=' "$TEMPLATE" | sed 's/[#=({].*//' | tr -d ' ' | sort -u)
 
     # Attributes Referenceに記載される属性（テンプレート本体には不要）
     # id, tags_all はcomputed属性としてAttributes Referenceに記載
