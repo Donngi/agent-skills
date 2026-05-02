@@ -53,9 +53,7 @@ AI Agentで利用可能なスキル集です。
 
 ## インストール方法
 
-[skills](https://github.com/vercel-labs/skills)を使用してスキルをインストールできます。
-
 ```bash
-npx skills add Donngi/agent-skills
+gh skill install Donngi/agent-skills
 ```
 
