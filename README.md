@@ -51,6 +51,15 @@ AI Agentで利用可能なスキル集です。
 - AWS Well-Architectedガイダンス、Checkovセキュリティスキャンに対応
 - 必須MCP server: `awslabs.terraform-mcp-server`, `aws-knowledge-mcp-server`
 
+### syncing-aidlc-workflows
+
+AWSの`aidlc-workflows`（AI-DLCワークフロー, `awslabs/aidlc-workflows`のv2ブランチ）のビルド済み成果物を、任意のプロジェクトに取り込み・差分アップデートするスキル。
+
+- ツール（現状Kiro）を選んでビルド済みアセットを配置（`node build.js`は実行せずコミット済みdistを直接利用）
+- 上流の更新を3-wayマージで取り込み、ローカルで加えた変更を保持（自動マージできる箇所は反映し、衝突箇所のみ停止）
+- 前回取り込み版との上流差分を確認可能。確定は2フェーズ（merge→finalize）で中断・ロールバックが安全
+- 取り込んだMarkdownの日本語訳を参考物として併せて保存（import/updateで差分翻訳）
+
 ## インストール方法
 
 ```bash

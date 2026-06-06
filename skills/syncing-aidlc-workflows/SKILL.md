@@ -1,0 +1,145 @@
+---
+name: syncing-aidlc-workflows
+description: AWSの aidlc-workflows（AI-DLC ワークフロー, awslabs/aidlc-workflows の v2 ブランチ）のビルド済み成果物を、作業中の任意のプロジェクトに取り込み、後から差分アップデートするスキル。取り込み時はツール（現状 Kiro）を選んでビルド済みアセットを配置し、3-way マージでローカルの変更を保持したまま上流の新版を反映する。さらに取り込んだ Markdown の日本語訳を参考物として併せて保存する。「aidlc を取り込んで」「aidlc workflow を入れて」「aidlc を最新に更新して」「上流で何が変わったか差分を見せて」「自分の変更を残したまま aidlc を更新」などのリクエストで必ず使用すること。AI-DLC / aidlc / aidlc-workflows の導入・更新・差分確認はこのスキルが担当する。
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep
+---
+
+# syncing-aidlc-workflows
+
+AWS の `awslabs/aidlc-workflows`（v2 ブランチ）のビルド済み成果物を任意のプロジェクトに取り込み、
+**ローカル変更を消さずに**差分アップデートする。取り込んだ Markdown の日本語訳も併せて保存する。
+
+決定論的な処理（取得・3-way マージ・整合性検証）は `lib/*.sh` が担い、Claude は
+**対話と判断（ツール選択・衝突解決の促し・日本語訳の生成）**を担う。
+
+## 前提条件
+
+- **必須**: `git`, `jq`（差分 update の 3-way マージは `git merge-file` を使うため git 必須）
+- **任意**: `curl`, `tar`（`git` が無い環境での上流取得フォールバック。ただし fallback で動くのは
+  import / diff のみで、update（merge）は git が要る。git ログ補助も無効になる）
+
+`lib/` スクリプトは本 SKILL.md と同じ階層にある。以下では本スキルのディレクトリを `${SKILL}` と表記する
+（実体は `.claude/skills/syncing-aidlc-workflows` 等、インストール先により異なる。実行前に `Glob` で
+`**/syncing-aidlc-workflows/lib/aidlc_common.sh` を探して絶対パスを確定すること）。
+
+ターゲット（取り込み先プロジェクト）のルートを `${PROJECT}` と表記する。指定が無ければカレントの
+git リポジトリルートを使う。
+
+## 重要な原則
+
+- **dist が成果物。`node build.js` は走らせない。** v2 ブランチには `dist/kiro/.kiro/` がビルド済みで
+  コミットされている。スクリプトはこれを直接取り込む。`src/` のビルドは行わない。
+- **base が 3-way マージの base。改変厳禁。** `${PROJECT}/.aidlc-sync/base/` は「前回取り込んだ
+  無改変版」。ここが base となるため、手で触らない。
+- **update は merge → finalize の2フェーズ。** 衝突が残っている間は base を進めない。これにより
+  中断・再開・ロールバックが安全に成立する。
+- **reference-ja はマージ対象外の参考物。** 日本語訳は最新上流の参考であり、3-way マージには関与しない。
+
+## 動作上の禁止事項
+
+- `.aidlc-sync/base/` および `.aidlc-sync/incoming/` の手編集
+- `node build.js` の実行（dist を直接使う）
+- dirty なターゲットでユーザー同意なく `--force` マージを強行すること
+- ワークフローに無い中間ファイルの生成
+
+## ワークフロー
+
+最初に必ず状況を把握する。`manifest.json` の有無で「初回 import」か「差分 update」かが決まる。
+
+```bash
+bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}"
+```
+
+`manifest が見つかりません` → **A. 初回 import** へ。そうでなければ **B. 差分 update** へ。
+`保留中update ⚠️ あり` と出たら、先に B の finalize か abort を済ませる。
+
+### A. 初回 import
+
+1. **ツールを確認する。** 取り込むツールのビルド済み成果物を選ぶ。現状 v2 で実体があるのは **kiro** のみ
+   （`src/claude` は placeholder）。ユーザーに `--tool` を確認し、配置先 `--install-path`（既定 `.kiro`）も確認する。
+
+2. **dry-run で予定を見せる**（任意だが推奨）:
+   ```bash
+   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool kiro --dry-run
+   ```
+
+3. **import 実行**:
+   ```bash
+   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool kiro
+   ```
+   これで `${PROJECT}/.kiro/`（実利用）と `${PROJECT}/.aidlc-sync/`（manifest + base）が作られる。
+
+4. **日本語訳を生成する**（→ C へ）。import 直後は全 md が翻訳対象。
+
+5. ユーザーに「`.aidlc-sync/` をコミットすると base をチーム共有でき再現性が出る」と伝える。
+
+### B. 差分 update（diff → merge → 衝突解決 → finalize）
+
+1. **上流差分を見せる。** 何が変わるかを先に提示する:
+   ```bash
+   bash "${SKILL}/lib/aidlc_diff.sh" --project-root "${PROJECT}"
+   ```
+   `上流に変更はありません` なら最新。ここで終了。
+
+2. **dirty を解消させる。** ターゲットが git 管理下なら、`.kiro` / `.aidlc-sync` に未コミット変更が
+   あると merge は停止する。コミットか stash を促す（ロールバックの安全網を確保するため）。
+
+3. **merge をプレビュー → 実行**:
+   ```bash
+   bash "${SKILL}/lib/aidlc_merge.sh" --project-root "${PROJECT}" --dry-run   # 件数確認
+   bash "${SKILL}/lib/aidlc_merge.sh" --project-root "${PROJECT}"             # 実行
+   ```
+   自動マージできる箇所は反映済み。**衝突一覧**が出たら、各ファイルの `<<<<<<<` マーカーを
+   ユーザーと解消する（詳細は [references/conflict-resolution.md](references/conflict-resolution.md)）。
+   この時点では base も manifest の確定情報も未更新。やり直すなら
+   `aidlc_merge.sh --project-root "${PROJECT}" --abort`。
+
+4. **finalize で確定**:
+   ```bash
+   bash "${SKILL}/lib/aidlc_finalize.sh" --project-root "${PROJECT}"
+   ```
+   install 先にマーカーが残っていれば停止する。全解消後に base を新上流へ入替え、manifest を更新する。
+   削除衝突やバイナリ衝突が記録されていた場合は、対処を確認のうえ `--accept` を付けて再実行する。
+
+5. **日本語訳を更新する**（→ C へ）。原文が変わった md だけが対象。
+
+### C. 日本語訳の生成・更新
+
+翻訳が必要な md の一覧を取得する（`translatedSha256` が未設定 or 原文と不一致のもの）:
+
+```bash
+bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}" --translation-todo
+```
+
+各対象 md について:
+
+1. 原文を読む: `${PROJECT}/.aidlc-sync/base/<相対パス>`（= 最新上流の無改変版。install 先のローカル
+   変更込みファイルではなく、必ず base を原文とする）。
+2. 日本語訳を `${PROJECT}/.aidlc-sync/reference-ja/<相対パス>` に同じ相対構造で `Write` する。
+   翻訳方針・用語統一は [references/translation-guide.md](references/translation-guide.md) に従う。
+3. 翻訳済みを記録する:
+   ```bash
+   bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}" --mark-translated "<相対パス>"
+   ```
+
+全 todo が消えるまで繰り返す。上流で削除された md の訳は `reference-ja/` から削除してよい。
+
+## スクリプト一覧（`lib/`）
+
+| スクリプト | 役割 |
+|---|---|
+| `aidlc_common.sh` | 共通ライブラリ（source 専用。単体実行しない） |
+| `aidlc_fetch.sh` | 上流取得の薄い CLI（通常は import/merge が内部で取得するため直接は使わない） |
+| `aidlc_import.sh` | 初回 import |
+| `aidlc_diff.sh` | 上流差分（前回取り込み版 → 新版）の提示 |
+| `aidlc_merge.sh` | update①: 3-way マージ / `--dry-run` / `--abort` |
+| `aidlc_finalize.sh` | update②: 確定（マーカー検証 → base 入替 → manifest 更新） |
+| `aidlc_status.sh` | 状況診断 / `--local-changes` / `--translation-todo` / `--mark-translated` |
+
+## 参照ファイル
+
+- [references/architecture.md](references/architecture.md) — メタデータ設計・base・2フェーズの不変条件
+- [references/manifest-schema.md](references/manifest-schema.md) — `manifest.json` のスキーマ
+- [references/conflict-resolution.md](references/conflict-resolution.md) — 衝突マーカーの読み方と解消手順
+- [references/translation-guide.md](references/translation-guide.md) — 日本語訳の方針・用語統一
+- [references/troubleshooting.md](references/troubleshooting.md) — 失敗モードと復旧手順
