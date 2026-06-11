@@ -1,13 +1,14 @@
 ---
 name: syncing-aidlc-workflows
-description: AWSの aidlc-workflows（AI-DLC ワークフロー, awslabs/aidlc-workflows の v2 ブランチ）のビルド済み成果物を、作業中の任意のプロジェクトに取り込み、後から差分アップデートするスキル。取り込み時はツール（現状 Kiro）を選んでビルド済みアセットを配置し、3-way マージでローカルの変更を保持したまま上流の新版を反映する。さらに取り込んだ Markdown の日本語訳を参考物として併せて保存する。「aidlc を取り込んで」「aidlc workflow を入れて」「aidlc を最新に更新して」「上流で何が変わったか差分を見せて」「自分の変更を残したまま aidlc を更新」などのリクエストで必ず使用すること。AI-DLC / aidlc / aidlc-workflows の導入・更新・差分確認はこのスキルが担当する。
+description: AWSの aidlc-workflows（AI-DLC ワークフロー, awslabs/aidlc-workflows の v2 ブランチ）の成果物を、作業中の任意のプロジェクトに取り込み、後から差分アップデートするスキル。取り込み時はツール（Kiro / Claude Code）を選んでアセットを配置し、3-way マージでローカルの変更を保持したまま上流の新版を反映する。さらに取り込んだ Markdown の日本語訳を参考物として併せて保存する。「aidlc を取り込んで」「aidlc workflow を入れて」「aidlc を最新に更新して」「上流で何が変わったか差分を見せて」「自分の変更を残したまま aidlc を更新」などのリクエストで必ず使用すること。AI-DLC / aidlc / aidlc-workflows の導入・更新・差分確認はこのスキルが担当する。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
 # syncing-aidlc-workflows
 
-AWS の `awslabs/aidlc-workflows`（v2 ブランチ）のビルド済み成果物を任意のプロジェクトに取り込み、
-**ローカル変更を消さずに**差分アップデートする。取り込んだ Markdown の日本語訳も併せて保存する。
+AWS の `awslabs/aidlc-workflows`（v2 ブランチ）の成果物を任意のプロジェクトに取り込み、
+**ローカル変更を消さずに**差分アップデートする。取り込むツールは **Kiro** と **Claude Code** から選べる。
+取り込んだ Markdown の日本語訳も併せて保存する。
 
 決定論的な処理（取得・3-way マージ・整合性検証）は `lib/*.sh` が担い、Claude は
 **対話と判断（ツール選択・衝突解決の促し・日本語訳の生成）**を担う。
@@ -15,6 +16,8 @@ AWS の `awslabs/aidlc-workflows`（v2 ブランチ）のビルド済み成果�
 ## 前提条件
 
 - **必須**: `git`, `jq`（差分 update の 3-way マージは `git merge-file` を使うため git 必須）
+- **kiro を取り込む場合**: `node`（上流 kiro はソースのみで、一時 clone 内で `build.js` を実行して
+  成果物を生成するため。claude はビルド済みのため node 不要）
 - **任意**: `curl`, `tar`（`git` が無い環境での上流取得フォールバック。ただし fallback で動くのは
   import / diff のみで、update（merge）は git が要る。git ログ補助も無効になる）
 
@@ -27,8 +30,10 @@ git リポジトリルートを使う。
 
 ## 重要な原則
 
-- **dist が成果物。`node build.js` は走らせない。** v2 ブランチには `dist/kiro/.kiro/` がビルド済みで
-  コミットされている。スクリプトはこれを直接取り込む。`src/` のビルドは行わない。
+- **dist が成果物。プロジェクト内ではビルドしない。** v2 ブランチでは、claude は
+  `claude-code/dist/claude/.claude/` にビルド済み成果物がコミットされておりそのまま取り込む。
+  kiro はソース（`kiro/src/`）のみのため、スクリプトが**使い捨ての一時 clone 内で** `build.js` を
+  実行して dist を生成し、その成果物だけを取り込む。**ターゲットプロジェクト内で build は走らせない。**
 - **base が 3-way マージの base。改変厳禁。** `${PROJECT}/.aidlc-sync/base/` は「前回取り込んだ
   無改変版」。ここが base となるため、手で触らない。
 - **update は merge → finalize の2フェーズ。** 衝突が残っている間は base を進めない。これにより
@@ -38,7 +43,7 @@ git リポジトリルートを使う。
 ## 動作上の禁止事項
 
 - `.aidlc-sync/base/` および `.aidlc-sync/incoming/` の手編集
-- `node build.js` の実行（dist を直接使う）
+- **ターゲットプロジェクト内での** `build.js` 実行（kiro のビルドは取得した一時 clone 内でのみ行う）
 - dirty なターゲットでユーザー同意なく `--force` マージを強行すること
 - ワークフローに無い中間ファイルの生成
 
@@ -55,19 +60,24 @@ bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}"
 
 ### A. 初回 import
 
-1. **ツールを確認する。** 取り込むツールのビルド済み成果物を選ぶ。現状 v2 で実体があるのは **kiro** のみ
-   （`src/claude` は placeholder）。ユーザーに `--tool` を確認し、配置先 `--install-path`（既定 `.kiro`）も確認する。
+1. **ツールを確認する。** 取り込むツールをユーザーに確認する。`--tool` は **`kiro`** または **`claude`**
+   （Claude Code）。配置先 `--install-path` は未指定ならツール既定（kiro → `.kiro` / claude → `.claude`）。
+   - `kiro`: 上流はソースのみ。スクリプトが一時 clone 内で `build.js` を実行して成果物を生成する（`node` 必須）。
+   - `claude`: ビルド済み成果物（`claude-code/dist/claude/.claude/`）をそのまま取り込む。
+   - 注意: `claude` は既定配置先 `.claude/` が既存のプロジェクトでは初回 import が停止する（クリーンな
+     配置先が前提）。既存の `.claude` がある場合はユーザーと配置先を相談する。
 
-2. **dry-run で予定を見せる**（任意だが推奨）:
+2. **dry-run で予定を見せる**（任意だが推奨。`--tool` は `kiro` または `claude`）:
    ```bash
-   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool kiro --dry-run
+   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool claude --dry-run
    ```
 
 3. **import 実行**:
    ```bash
-   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool kiro
+   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool claude   # または --tool kiro
    ```
-   これで `${PROJECT}/.kiro/`（実利用）と `${PROJECT}/.aidlc-sync/`（manifest + base）が作られる。
+   これで `${PROJECT}/<installPath>/`（実利用。claude なら `.claude/`、kiro なら `.kiro/`）と
+   `${PROJECT}/.aidlc-sync/`（manifest + base）が作られる。
 
 4. **日本語訳を生成する**（→ C へ）。import 直後は全 md が翻訳対象。
 
@@ -81,8 +91,9 @@ bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}"
    ```
    `上流に変更はありません` なら最新。ここで終了。
 
-2. **dirty を解消させる。** ターゲットが git 管理下なら、`.kiro` / `.aidlc-sync` に未コミット変更が
-   あると merge は停止する。コミットか stash を促す（ロールバックの安全網を確保するため）。
+2. **dirty を解消させる。** ターゲットが git 管理下なら、`<installPath>`（例 `.kiro` / `.claude`）や
+   `.aidlc-sync` に未コミット変更があると merge は停止する。コミットか stash を促す（ロールバックの
+   安全網を確保するため）。
 
 3. **merge をプレビュー → 実行**:
    ```bash

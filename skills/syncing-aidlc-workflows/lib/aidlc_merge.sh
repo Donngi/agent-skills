@@ -87,6 +87,7 @@ PENDING="$(jq -r 'if .pendingUpdate then .pendingUpdate.targetCommit else "" end
 REPO="$(jq -r '.upstream.repo' "$MANIFEST")"
 BRANCH="$(jq -r '.upstream.branch' "$MANIFEST")"
 DIST_ROOT="$(jq -r '.upstream.distRoot' "$MANIFEST")"
+TOOL="$(jq -r '.tool' "$MANIFEST")"
 IMPORTED="$(jq -r '.importedCommit' "$MANIFEST")"
 
 # dirty チェック（git管理下のみ）。ロールバックの安全網を確保するため
@@ -110,8 +111,10 @@ CLONE="$TMP/upstream"
 aidlc_info "上流を取得中: $REPO ($BRANCH${COMMIT:+ @$COMMIT}) ..."
 NEW_SHA="$(aidlc_fetch_upstream "$CLONE" "$REPO" "$BRANCH" "$COMMIT")" \
   || aidlc_die "上流の取得に失敗しました"
+# kiro は clone 内で build.js を実行して dist を生成（claude は no-op）
+aidlc_prepare_dist "$CLONE" "$TOOL" || aidlc_die "dist の準備に失敗しました（tool=${TOOL}）"
 THEIRS="$CLONE/$DIST_ROOT"
-[ -d "$THEIRS" ] || aidlc_die "ビルド済み成果物が見つかりません: $DIST_ROOT"
+[ -d "$THEIRS" ] || aidlc_die "成果物が見つかりません: $DIST_ROOT"
 
 if [ "$NEW_SHA" = "$IMPORTED" ]; then
   aidlc_info "上流に変更はありません（最新版を取り込み済み）。"

@@ -17,11 +17,51 @@ AIDLC_DEFAULT_TOOL="kiro"
 AIDLC_SYNC_DIR=".aidlc-sync"      # ターゲットrepo直下のメタデータディレクトリ名
 AIDLC_SCHEMA_VERSION=1
 
-# ツール名 → 上流repo内のビルド済み成果物ルート
+# ツール名 → 上流repo内の成果物(dist)ルート
+#   kiro   : ソースのみコミット。build.js 実行後に生成される（aidlc_prepare_dist 参照）
+#   claude : ビルド済み成果物がコミット済み（そのまま取り込める）
 aidlc_dist_root() {
   case "$1" in
-    kiro) echo "dist/kiro/.kiro" ;;
-    *)    return 1 ;;
+    kiro)   echo "kiro/dist/kiro-ide/.kiro" ;;
+    claude) echo "claude-code/dist/claude/.claude" ;;
+    *)      return 1 ;;
+  esac
+}
+
+# ツール名 → 既定の install-path（プロジェクト相対）
+aidlc_default_install_path() {
+  case "$1" in
+    kiro)   echo ".kiro" ;;
+    claude) echo ".claude" ;;
+    *)      return 1 ;;
+  esac
+}
+
+# ツール名 → 上流repo内のサブディレクトリ（git log フィルタ用）。
+# kiro の dist は gitignore されコミットされないため、コミットログは
+# ソースを含むサブディレクトリで絞る必要がある。
+aidlc_repo_subdir() {
+  case "$1" in
+    kiro)   echo "kiro" ;;
+    claude) echo "claude-code" ;;
+    *)      return 1 ;;
+  esac
+}
+
+# clone 取得後に dist を用意する。
+#   kiro   : build.js を実行して dist を生成（node 必須）
+#   claude : ビルド済みのため no-op
+# THEIRS（= $clone/$DIST_ROOT）を参照する前に呼ぶこと。
+aidlc_prepare_dist() {
+  local clone="$1" tool="$2"
+  case "$tool" in
+    kiro)
+      aidlc_have node || aidlc_die "kiro のビルドには node が必要です（claude は不要）"
+      ( cd "$clone/kiro" && node build/kiro-ide/build.js ) >&2 \
+        || { aidlc_warn "kiro のビルドに失敗しました"; return 1; }
+      ;;
+    claude) : ;;   # ビルド済み。何もしない
+    *) return 1 ;;
   esac
 }
 

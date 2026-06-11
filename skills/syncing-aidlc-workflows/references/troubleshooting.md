@@ -9,9 +9,16 @@
 未 import の状態。`aidlc_import.sh` を実行する。逆に import 時に `既に manifest が存在します` と
 出たら、それは update 対象。`aidlc_merge.sh` を使う。
 
-### `ビルド済み成果物が見つかりません: dist/kiro/.kiro`
-取得したブランチに dist が無い／ツール名が違う。`--branch v2` か、`--tool` が対応ツールか確認する。
-現状 dist の実体があるのは kiro のみ。
+### `成果物が見つかりません: <distRoot>`
+取得したブランチに成果物が無い／ツール名が違う。`--branch v2` か、`--tool` が対応ツール（`kiro` /
+`claude`）か確認する。kiro の dist は一時 clone 内でのビルド（`build.js`）で生成されるため、
+ビルドが失敗していると成果物が無い状態になる（下記参照）。
+
+### kiro 選択時に `kiro のビルドには node が必要です` / `kiro のビルドに失敗しました`
+kiro は上流にソースのみがあり、取得した一時 clone 内で `node build/kiro-ide/build.js` を実行して
+成果物を生成する。`node` が PATH に無い、または build.js がエラーになると停止する。対処:
+- `node` を導入する（claude を取り込む場合は node 不要）。
+- それでも解決しなければ、ビルド不要な `--tool claude` の利用を検討する。
 
 ### dirty で merge が停止する
 `.kiro` / `.aidlc-sync` に未コミット変更があると、ロールバックの安全網が無いため停止する。
@@ -35,6 +42,13 @@ delete-modified / delete-update / binary などマーカーの付かない衝突
 ### 保留中 update が残ったまま別の操作をしたい
 `aidlc_merge.sh --abort` で破棄してから操作する。abort は merge 直前の installPath を
 `backup-<ts>/` から復元する。
+
+### 旧構成の manifest で update が失敗する（`distRoot: dist/kiro/.kiro`）
+上流 v2 が再構成され、旧パス `dist/kiro/.kiro` は存在しなくなった（kiro は `kiro/dist/kiro-ide/.kiro`、
+claude は `claude-code/dist/claude/.claude`）。旧 manifest を持つ既存プロジェクトは diff/update 時に
+`成果物が見つかりません` で停止する。対処:
+- 再 import する（`.aidlc-sync/` を削除して `aidlc_import.sh --tool kiro` で取り込み直す）。
+- もしくは manifest の `upstream.distRoot` を `kiro/dist/kiro-ide/.kiro` に手修正する。
 
 ### git が無い環境
 `curl` + `tar` があれば codeload tarball で取得を試みる（ブランチ tip のみ・git ログ補助は無効）。

@@ -10,9 +10,9 @@
 | `schemaVersion` | number | スキーマ版。将来の拡張（複数ツール同時 vendoring 等）の互換判定用 |
 | `upstream.repo` | string | 上流リポジトリ URL（既定 `https://github.com/awslabs/aidlc-workflows`） |
 | `upstream.branch` | string | 取得ブランチ（既定 `v2`） |
-| `upstream.distRoot` | string | 上流 repo 内のビルド済み成果物ルート（kiro なら `dist/kiro/.kiro`） |
-| `tool` | string | 取り込んだツール名（現状 `kiro`） |
-| `installPath` | string | ターゲット内の配置先（既定 `.kiro`）。`files[].path` と `base/` はこの相対構造 |
+| `upstream.distRoot` | string | 上流 repo 内の成果物ルート（kiro: `kiro/dist/kiro-ide/.kiro` / claude: `claude-code/dist/claude/.claude`） |
+| `tool` | string | 取り込んだツール名（`kiro` または `claude`） |
+| `installPath` | string | ターゲット内の配置先（既定 kiro=`.kiro` / claude=`.claude`）。`files[].path` と `base/` はこの相対構造 |
 | `importedCommit` | string(40) | 現在取り込んでいる上流の full SHA。**差分の起点／冪等判定の鍵** |
 | `importedAt` | string | 初回 import 時刻（ISO8601 UTC） |
 | `lastUpdateCommit` | string\|null | 最後に finalize で確定した上流 SHA。未 update なら null |
@@ -46,7 +46,7 @@
   "upstream": {
     "repo": "https://github.com/awslabs/aidlc-workflows",
     "branch": "v2",
-    "distRoot": "dist/kiro/.kiro"
+    "distRoot": "kiro/dist/kiro-ide/.kiro"
   },
   "tool": "kiro",
   "installPath": ".kiro",
@@ -60,3 +60,6 @@
   ]
 }
 ```
+
+claude を取り込んだ場合は `upstream.distRoot` が `claude-code/dist/claude/.claude`、`tool` が `claude`、
+`installPath` が `.claude`（既定）になり、`files[].path` は `.claude/` 起点の相対パスになる。

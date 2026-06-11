@@ -4,13 +4,21 @@
 上流の更新を取り込む際に**ローカル変更を保持**することを目的とする。本質は「3-way マージによる同期」であり、
 その正しさを支えるのが下記のメタデータ設計と不変条件である。
 
+取り込むツールは kiro / claude（Claude Code）から選べる。dist の供給形態はツールで異なるが、
+取得後の同期ロジック（base・3-way・finalize）はツール非依存である:
+
+- **claude**: ビルド済み成果物（`claude-code/dist/claude/.claude/`）が上流にコミット済み。そのまま取り込む。
+- **kiro**: 上流はソース（`kiro/src/`）のみ。取得した一時 clone 内で `build.js` を実行して
+  `kiro/dist/kiro-ide/.kiro/` を生成し、その成果物だけを install / base に取り込む（`node` 必須）。
+  ビルドは使い捨ての clone 内で行うため、`base/` や install 先には成果物のみが入る。
+
 ## 3つのディレクトリ
 
 ターゲットプロジェクト `${PROJECT}` に以下が作られる。
 
 ```
 ${PROJECT}/
-├── <installPath>/            # 既定 .kiro/。実利用ファイル = "ours"（ローカル変更込み）
+├── <installPath>/            # kiro なら .kiro/、claude なら .claude/。実利用ファイル = "ours"（ローカル変更込み）
 └── .aidlc-sync/              # スキルが管理するメタデータ（コミット推奨）
     ├── manifest.json         # 同期状態の単一の真実
     ├── base/             # 前回取り込んだ無改変版 = 3-way マージの "base"
