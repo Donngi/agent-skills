@@ -51,9 +51,14 @@ aidlc_repo_subdir() {
 # clone 取得後に dist を用意する。
 #   kiro   : build.js を実行して dist を生成（node 必須）
 #   claude : ビルド済みのため no-op
-# THEIRS（= $clone/$DIST_ROOT）を参照する前に呼ぶこと。
+# 最後に aidlc_normalize_dist で「aidlc の動作に不要な内容」を除去する。
+# THEIRS（= $clone/$DIST_ROOT）を参照する前に呼ぶこと。import/diff/merge が
+# いずれもこの正規化済み dist を base/ours/theirs の元にするため、3-way マージは一貫する。
 aidlc_prepare_dist() {
   local clone="$1" tool="$2"
+  local dist_root distdir
+  dist_root="$(aidlc_dist_root "$tool")" || return 1
+  distdir="$clone/$dist_root"
   case "$tool" in
     kiro)
       aidlc_have node || aidlc_die "kiro のビルドには node が必要です（claude は不要）"
@@ -62,6 +67,35 @@ aidlc_prepare_dist() {
       ;;
     claude) : ;;   # ビルド済み。何もしない
     *) return 1 ;;
+  esac
+  aidlc_normalize_dist "$distdir" "$tool"
+}
+
+# dist から「aidlc の動作に必要でない内容」を除去する（取り込み前の正規化）。
+#   claude : settings.json は aidlc の hooks 登録だけが動作に必要なので hooks のみ残す。
+#            環境固有・グローバル設定（env の Bedrock/AWS_REGION/モデル指定、model、
+#            effortLevel、statusLine、permissions、companyAnnouncements）はユーザーの
+#            Claude Code 環境を上書きしてしまうため取り込まない。個人 override 例の
+#            settings.local.json.example も同様に取り込まない。
+#   kiro   : 該当する全体設定ファイルが無いため no-op。
+aidlc_normalize_dist() {
+  local distdir="$1" tool="$2"
+  case "$tool" in
+    claude)
+      local s="$distdir/settings.json"
+      if [ -f "$s" ]; then
+        local tmp; tmp="$(mktemp)" || return 1
+        # hooks のみ残す（hooks 不在なら {} になる）
+        if jq '{hooks} | with_entries(select(.value != null))' "$s" > "$tmp" 2>/dev/null; then
+          mv "$tmp" "$s"
+        else
+          rm -f "$tmp"
+          aidlc_warn "settings.json の正規化に失敗しました（そのまま取り込みます）: $s"
+        fi
+      fi
+      rm -f "$distdir/settings.local.json.example"
+      ;;
+    *) : ;;
   esac
 }
 

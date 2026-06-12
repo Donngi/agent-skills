@@ -12,6 +12,13 @@
   `kiro/dist/kiro-ide/.kiro/` を生成し、その成果物だけを install / base に取り込む（`node` 必須）。
   ビルドは使い捨ての clone 内で行うため、`base/` や install 先には成果物のみが入る。
 
+取得後はさらに **dist の正規化**（`aidlc_normalize_dist`）を行い、aidlc の動作に不要な内容を除去する。
+claude の `settings.json` は aidlc の `hooks` 登録だけを残し、環境固有設定（`env` の Bedrock/リージョン/
+モデル指定、`model`、`effortLevel`、`statusLine`、`permissions`、`companyAnnouncements`）と
+`settings.local.json.example` を落とす。重要なのは、この正規化を **import / diff / merge のいずれもが
+取得直後の一時 clone 上で同じく適用する**点である。これにより base（前回取込）・theirs（新上流）が
+常に同じ規則で正規化され、3-way マージが「正規化前後の差」で誤検知することなく一貫する。
+
 ## 3つのディレクトリ
 
 ターゲットプロジェクト `${PROJECT}` に以下が作られる。

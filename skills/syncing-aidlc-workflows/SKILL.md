@@ -34,6 +34,12 @@ git リポジトリルートを使う。
   `claude-code/dist/claude/.claude/` にビルド済み成果物がコミットされておりそのまま取り込む。
   kiro はソース（`kiro/src/`）のみのため、スクリプトが**使い捨ての一時 clone 内で** `build.js` を
   実行して dist を生成し、その成果物だけを取り込む。**ターゲットプロジェクト内で build は走らせない。**
+- **aidlc の動作に不要な内容は取り込まない（取得 dist を正規化）。** claude の `settings.json` は
+  aidlc の動作に必要な `hooks` 登録だけを残し、環境固有・グローバル設定（`env` の Bedrock/AWS_REGION/
+  モデル指定、`model`、`effortLevel`、`statusLine`、`permissions`、`companyAnnouncements`）と
+  `settings.local.json.example` は除去する。これらはユーザーの Claude Code 環境を上書きしてしまうため。
+  正規化は取得した一時 clone 上で行い、import/diff/merge すべてが同じ正規化済み dist を base/theirs の
+  元にするので 3-way マージは一貫する（`lib/aidlc_common.sh` の `aidlc_normalize_dist`）。
 - **base が 3-way マージの base。改変厳禁。** `${PROJECT}/.aidlc-sync/base/` は「前回取り込んだ
   無改変版」。ここが base となるため、手で触らない。
 - **update は merge → finalize の2フェーズ。** 衝突が残っている間は base を進めない。これにより
