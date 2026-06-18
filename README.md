@@ -71,6 +71,13 @@ AWSの`aidlc-workflows`（AI-DLCワークフロー, `awslabs/aidlc-workflows`の
   - `aidlc-common/**/*.js`内のハードコード`.kiro`パスを`.claude`へ書換え
 - 冪等で再実行可能（上流更新後は再実行するだけで`.claude/`が追従、settings.jsonのフックは重複しない）
 
+## リポジトリ構成
+
+- `skills/<skill-name>/` … スキル本体（`SKILL.md`・`lib`/`scripts`・`references`・テスト定義 `evals/`）。git 管理対象。
+- `.skill-workspaces/<skill-name>/` … `skill-creator` による評価・ベンチの実行成果物。再生成可能なため git 管理外（`.gitignore` 済み）。
+
+スキル開発時の evals/workspace の管理方針の詳細は [`CLAUDE.md`](./CLAUDE.md) を参照。
+
 ## インストール方法
 
 ```bash
