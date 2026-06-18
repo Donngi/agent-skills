@@ -4,18 +4,24 @@
 上流の更新を取り込む際に**ローカル変更を保持**することを目的とする。本質は「3-way マージによる同期」であり、
 その正しさを支えるのが下記のメタデータ設計と不変条件である。
 
-取り込むツールは kiro / claude（Claude Code）から選べる。dist の供給形態はツールで異なるが、
-取得後の同期ロジック（base・3-way・finalize）はツール非依存である:
+取り込むハーネスは claude（Claude Code）/ kiro（Kiro CLI）/ codex（Codex CLI）から選べる。
+上流 v2 は全ハーネスの成果物を `dist/<harness>/...` に**ビルド済みでコミット**しているため、
+取り込みはこの dist をコピーするだけでよく、ビルドは行わない。取得後の同期ロジック
+（base・3-way・finalize）はハーネス非依存である:
 
-- **claude**: ビルド済み成果物（`claude-code/dist/claude/.claude/`）が上流にコミット済み。そのまま取り込む。
-- **kiro**: 上流はソース（`kiro/src/`）のみ。取得した一時 clone 内で `build.js` を実行して
-  `kiro/dist/kiro-ide/.kiro/` を生成し、その成果物だけを install / base に取り込む（`node` 必須）。
-  ビルドは使い捨ての clone 内で行うため、`base/` や install 先には成果物のみが入る。
+- **claude**: `dist/claude/.claude/` を `.claude/` へ取り込む。
+- **kiro** (Kiro CLI): `dist/kiro/.kiro/` を `.kiro/` へ取り込む。
+- **codex** (Codex CLI): `dist/codex/` を project root（installPath=`.`）へ取り込む。配下の
+  `.codex/` と `.agents/` を配置する（`AGENTS.md` は正規化で除去）。
+
+> 旧 v2 は kiro のみソースで一時 clone 内 `build.js` を要したが、上流再編で全 dist が
+> コミット済みになり、ビルド依存（node）は廃止された。Kiro IDE（`dist/kiro-ide`）は本スキル対象外。
 
 取得後はさらに **dist の正規化**（`aidlc_normalize_dist`）を行い、aidlc の動作に不要な内容を除去する。
 claude の `settings.json` は aidlc の `hooks` 登録だけを残し、環境固有設定（`env` の Bedrock/リージョン/
 モデル指定、`model`、`effortLevel`、`statusLine`、`permissions`、`companyAnnouncements`）と
-`settings.local.json.example` を落とす。重要なのは、この正規化を **import / diff / merge のいずれもが
+`settings.local.json.example` を落とす。codex は dist 直下の `AGENTS.md` を落とす（`.codex/`・`.agents/`
+のみ取り込む）。重要なのは、この正規化を **import / diff / merge のいずれもが
 取得直後の一時 clone 上で同じく適用する**点である。これにより base（前回取込）・theirs（新上流）が
 常に同じ規則で正規化され、3-way マージが「正規化前後の差」で誤検知することなく一貫する。
 
@@ -25,14 +31,24 @@ claude の `settings.json` は aidlc の `hooks` 登録だけを残し、環境�
 
 ```
 ${PROJECT}/
-├── <installPath>/            # kiro なら .kiro/、claude なら .claude/。実利用ファイル = "ours"（ローカル変更込み）
+├── <installPath>/            # claude→.claude/、kiro→.kiro/。実利用ファイル = "ours"（ローカル変更込み）
+│                             # codex は installPath="." で .codex/ と .agents/ を project root 直下に置く
 └── .aidlc-sync/              # スキルが管理するメタデータ（コミット推奨）
     ├── manifest.json         # 同期状態の単一の真実
     ├── base/             # 前回取り込んだ無改変版 = 3-way マージの "base"
     ├── reference-ja/         # 取り込んだ Markdown の日本語訳（参考物・マージ対象外）
     ├── incoming/             # update 確定待ちの新上流（finalize で base になる・一時）
-    └── backup-<ts>/          # merge 直前の installPath 退避（abort 用・一時）
+    └── backup-<ts>/          # merge 直前の install 退避（abort 用・一時。project-root 相対構造で保存）
 ```
+
+### installPath="."（codex）と owned dirs
+
+codex は `.codex/` と `.agents/` という 2 つの兄弟ディレクトリを project root 直下に置くため、
+installPath は `.`（project root）になる。このとき backup / 復元 / dirty 判定 / マーカー検査などの
+**粗い操作は project root 全体ではなく「所有トップレベル項目」(owned dirs) に限定**する
+（`aidlc_common.sh` の `aidlc_owned_dirs`）。これにより `rm -rf "$PROJECT_ROOT/."` のような
+プロジェクト全削除事故や、`.git` を巻き込んだ巨大 backup を防ぐ。owned dirs は管理対象ツリー
+（base / 新上流 / backup）のトップレベル要素から導出する（codex なら `.codex` と `.agents`）。
 
 ## なぜ baseが必須か
 

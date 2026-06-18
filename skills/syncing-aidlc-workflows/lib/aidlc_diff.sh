@@ -33,8 +33,10 @@ MANIFEST="$(aidlc_manifest_path "$PROJECT_ROOT")"
 
 REPO="$(jq -r '.upstream.repo' "$MANIFEST")"
 BRANCH="$(jq -r '.upstream.branch' "$MANIFEST")"
-DIST_ROOT="$(jq -r '.upstream.distRoot' "$MANIFEST")"
 TOOL="$(jq -r '.tool' "$MANIFEST")"
+# distRoot は manifest 保存値ではなく tool から再導出する（上流のパス再編に追従＝self-heal。
+# 旧 manifest に古い distRoot が残っていても、現行の正しいパスを参照できる）。
+DIST_ROOT="$(aidlc_dist_root "$TOOL")" || aidlc_die "未対応のツールです: ${TOOL}（対応: claude, kiro, codex）"
 IMPORTED="$(jq -r '.importedCommit' "$MANIFEST")"
 BASE="$(aidlc_base_root "$PROJECT_ROOT")"
 
@@ -45,7 +47,7 @@ CLONE="$TMP/upstream"
 aidlc_info "上流を取得中: $REPO ($BRANCH${COMMIT:+ @$COMMIT}) ..."
 NEW_SHA="$(aidlc_fetch_upstream "$CLONE" "$REPO" "$BRANCH" "$COMMIT")" \
   || aidlc_die "上流の取得に失敗しました"
-# kiro は clone 内で build.js を実行して dist を生成（claude は no-op）
+# 取得した dist を正規化（aidlc の動作に不要な内容を除去）。ビルドは不要（上流がコミット済み）。
 aidlc_prepare_dist "$CLONE" "$TOOL" || aidlc_die "dist の準備に失敗しました（tool=${TOOL}）"
 THEIRS="$CLONE/$DIST_ROOT"
 [ -d "$THEIRS" ] || aidlc_die "成果物が見つかりません: $DIST_ROOT"
@@ -79,9 +81,9 @@ aidlc_info ""
 [ ${#deleted[@]}  -gt 0 ] && printf '  D %s\n' "${deleted[@]}"
 
 # git があればコミットログを補助表示。
-# kiro の dist は未コミット（gitignore）なので、ソースを含むサブディレクトリで絞る。
+# dist は上流にコミット済みなので、distRoot 自体でコミットを絞れる。
 if aidlc_have git && [ -d "$CLONE/.git" ]; then
-  LOG_PATH="$(aidlc_repo_subdir "$TOOL")" || LOG_PATH="$DIST_ROOT"
+  LOG_PATH="$DIST_ROOT"
   log="$(git -C "$CLONE" log --oneline "${IMPORTED}..${NEW_SHA}" -- "$LOG_PATH" 2>/dev/null)"
   if [ -n "$log" ]; then
     aidlc_info ""

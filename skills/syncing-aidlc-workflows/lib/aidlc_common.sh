@@ -18,40 +18,35 @@ AIDLC_SYNC_DIR=".aidlc-sync"      # ターゲットrepo直下のメタデータ�
 AIDLC_SCHEMA_VERSION=1
 
 # ツール名 → 上流repo内の成果物(dist)ルート
-#   kiro   : ソースのみコミット。build.js 実行後に生成される（aidlc_prepare_dist 参照）
-#   claude : ビルド済み成果物がコミット済み（そのまま取り込める）
+#   いずれもビルド済み成果物が上流にコミット済み（dist/<tool>/...）。そのまま取り込める。
+#   claude : Claude Code        → dist/claude/.claude
+#   kiro   : Kiro CLI           → dist/kiro/.kiro
+#   codex  : Codex CLI          → dist/codex （配下に .codex/ と .agents/ の2ディレクトリ）
+# 注: 旧 install の tool:"kiro" は旧 Kiro IDE 由来だが、現在は Kiro CLI を指す
+#     （いずれも install 先は .kiro/）。update でそのまま Kiro CLI 版へ移行する。
 aidlc_dist_root() {
   case "$1" in
-    kiro)   echo "kiro/dist/kiro-ide/.kiro" ;;
-    claude) echo "claude-code/dist/claude/.claude" ;;
+    claude) echo "dist/claude/.claude" ;;
+    kiro)   echo "dist/kiro/.kiro" ;;
+    codex)  echo "dist/codex" ;;
     *)      return 1 ;;
   esac
 }
 
 # ツール名 → 既定の install-path（プロジェクト相対）
+#   codex は .codex/ と .agents/ を project root 直下へ置くため "."（project root）。
 aidlc_default_install_path() {
   case "$1" in
-    kiro)   echo ".kiro" ;;
     claude) echo ".claude" ;;
-    *)      return 1 ;;
-  esac
-}
-
-# ツール名 → 上流repo内のサブディレクトリ（git log フィルタ用）。
-# kiro の dist は gitignore されコミットされないため、コミットログは
-# ソースを含むサブディレクトリで絞る必要がある。
-aidlc_repo_subdir() {
-  case "$1" in
-    kiro)   echo "kiro" ;;
-    claude) echo "claude-code" ;;
+    kiro)   echo ".kiro" ;;
+    codex)  echo "." ;;
     *)      return 1 ;;
   esac
 }
 
 # clone 取得後に dist を用意する。
-#   kiro   : build.js を実行して dist を生成（node 必須）
-#   claude : ビルド済みのため no-op
-# 最後に aidlc_normalize_dist で「aidlc の動作に不要な内容」を除去する。
+#   上流はすべての成果物をビルド済みでコミットしているため、ビルドは不要。
+# aidlc_normalize_dist で「aidlc の動作に不要な内容」を除去するだけ。
 # THEIRS（= $clone/$DIST_ROOT）を参照する前に呼ぶこと。import/diff/merge が
 # いずれもこの正規化済み dist を base/ours/theirs の元にするため、3-way マージは一貫する。
 aidlc_prepare_dist() {
@@ -59,15 +54,6 @@ aidlc_prepare_dist() {
   local dist_root distdir
   dist_root="$(aidlc_dist_root "$tool")" || return 1
   distdir="$clone/$dist_root"
-  case "$tool" in
-    kiro)
-      aidlc_have node || aidlc_die "kiro のビルドには node が必要です（claude は不要）"
-      ( cd "$clone/kiro" && node build/kiro-ide/build.js ) >&2 \
-        || { aidlc_warn "kiro のビルドに失敗しました"; return 1; }
-      ;;
-    claude) : ;;   # ビルド済み。何もしない
-    *) return 1 ;;
-  esac
   aidlc_normalize_dist "$distdir" "$tool"
 }
 
@@ -77,7 +63,9 @@ aidlc_prepare_dist() {
 #            effortLevel、statusLine、permissions、companyAnnouncements）はユーザーの
 #            Claude Code 環境を上書きしてしまうため取り込まない。個人 override 例の
 #            settings.local.json.example も同様に取り込まない。
-#   kiro   : 該当する全体設定ファイルが無いため no-op。
+#   codex  : distRoot(dist/codex) 直下の AGENTS.md は取り込み対象外なので除去
+#            （.codex/ と .agents/ のみを取り込む）。
+#   kiro   : 該当する全体設定ファイルが無いため no-op（AGENTS.md は distRoot 外）。
 aidlc_normalize_dist() {
   local distdir="$1" tool="$2"
   case "$tool" in
@@ -94,6 +82,9 @@ aidlc_normalize_dist() {
         fi
       fi
       rm -f "$distdir/settings.local.json.example"
+      ;;
+    codex)
+      rm -f "$distdir/AGENTS.md"
       ;;
     *) : ;;
   esac
@@ -172,6 +163,24 @@ aidlc_manifest_path()   { echo "$1/$AIDLC_SYNC_DIR/manifest.json"; }       # $1=
 aidlc_base_root()   { echo "$1/$AIDLC_SYNC_DIR/base"; }
 aidlc_reference_ja_root(){ echo "$1/$AIDLC_SYNC_DIR/reference-ja"; }
 aidlc_incoming_root()   { echo "$1/$AIDLC_SYNC_DIR/incoming"; }
+
+# install が所有するトップレベル「項目」を project-root 相対で列挙する。
+#   aidlc_owned_dirs <install_path> <source_root>
+#   - install_path != "." → その値ひとつ（従来どおりの単一 install dir。例: .kiro）
+#   - install_path == "." → source_root 直下の各項目（dir/ファイル）を列挙
+#       （codex の .codex / .agents 等）。project root 自体は決して返さない。
+# 粗い破壊的操作（backup/復元/rm -rf/dirty/grep）は必ずこの集合を明示対象にし、
+# installPath="." のときに PROJECT_ROOT 自体を対象にしてしまう事故を防ぐ。
+# source_root には現在の管理対象を表すツリー（BASE / THEIRS / backup 等）を渡す。
+aidlc_owned_dirs() {
+  local install_path="$1" source_root="$2"
+  if [ "$install_path" != "." ]; then
+    echo "$install_path"
+    return 0
+  fi
+  [ -d "$source_root" ] || return 0
+  ( cd "$source_root" && find . -mindepth 1 -maxdepth 1 | sed 's|^\./||' | LC_ALL=C sort )
+}
 
 # --------------------------------------------------------------------------
 # 上流取得

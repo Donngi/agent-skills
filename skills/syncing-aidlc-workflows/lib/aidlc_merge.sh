@@ -43,7 +43,8 @@ MANIFEST="$(aidlc_manifest_path "$PROJECT_ROOT")"
 [ -f "$MANIFEST" ] || aidlc_die "manifest が見つかりません（先に import してください）"
 
 INSTALL_PATH="$(jq -r '.installPath' "$MANIFEST")"
-case "$INSTALL_PATH" in ""|"."|"/"|*..*) aidlc_die "manifest の installPath が不正です: '$INSTALL_PATH'";; esac
+# "." は codex 等のマルチルート install で正当（破壊的操作は owned dirs に限定する）
+case "$INSTALL_PATH" in ""|"/"|*..*) aidlc_die "manifest の installPath が不正です: '$INSTALL_PATH'";; esac
 INSTALL_DIR="$PROJECT_ROOT/$INSTALL_PATH"
 BASE="$(aidlc_base_root "$PROJECT_ROOT")"
 INCOMING="$(aidlc_incoming_root "$PROJECT_ROOT")"
@@ -56,14 +57,22 @@ if [ "$ABORT" -eq 1 ]; then
   [ "$PENDING" = "yes" ] || aidlc_die "保留中の update はありません"
   BACKUP="$(jq -r '.pendingUpdate.backup' "$MANIFEST")"
   if [ -n "$BACKUP" ] && [ "$BACKUP" != "null" ] && [ -d "$PROJECT_ROOT/$BACKUP" ]; then
-    # 一時先に復元を組み立て、成功を確認してから原子的に差し替える。
+    # 一時先に復元を組み立て、成功を確認してから owned dir 単位で原子的に差し替える。
     # （直接 install を消してからコピーすると、途中失敗で install と backup を
     #   同時に失う恐れがある。検証が通るまで元 install と backup は消さない）
+    # backup は project-root 相対構造（例 .kiro/... や .codex/.. + .agents/..）で保存されている。
+    # owned dir を backup から導出し、PROJECT_ROOT 自体には決して rm -rf しない。
+    BACKUP_ABS="$PROJECT_ROOT/$BACKUP"
     RESTORE="$PROJECT_ROOT/$AIDLC_SYNC_DIR/.restore-tmp"
     rm -rf "$RESTORE"
-    if aidlc_copy_tree "$PROJECT_ROOT/$BACKUP" "$RESTORE"; then
-      rm -rf "${INSTALL_DIR:?}"
-      mv "$RESTORE" "$INSTALL_DIR"
+    if aidlc_copy_tree "$BACKUP_ABS" "$RESTORE"; then
+      while IFS= read -r d; do
+        [ -z "$d" ] && continue
+        rm -rf "${PROJECT_ROOT:?}/${d:?}"
+        mkdir -p "$(dirname "$PROJECT_ROOT/$d")"
+        mv "$RESTORE/$d" "$PROJECT_ROOT/$d"
+      done < <(aidlc_owned_dirs "$INSTALL_PATH" "$BACKUP_ABS")
+      rm -rf "$RESTORE"
       rm -rf "$PROJECT_ROOT/${BACKUP:?}"
       aidlc_info "install を退避から復元しました: $BACKUP"
     else
@@ -86,15 +95,23 @@ PENDING="$(jq -r 'if .pendingUpdate then .pendingUpdate.targetCommit else "" end
 
 REPO="$(jq -r '.upstream.repo' "$MANIFEST")"
 BRANCH="$(jq -r '.upstream.branch' "$MANIFEST")"
-DIST_ROOT="$(jq -r '.upstream.distRoot' "$MANIFEST")"
 TOOL="$(jq -r '.tool' "$MANIFEST")"
+# distRoot は manifest 保存値ではなく tool から再導出する（上流のパス再編に追従＝self-heal）
+DIST_ROOT="$(aidlc_dist_root "$TOOL")" || aidlc_die "未対応のツールです: ${TOOL}（対応: claude, kiro, codex）"
 IMPORTED="$(jq -r '.importedCommit' "$MANIFEST")"
 
-# dirty チェック（git管理下のみ）。ロールバックの安全網を確保するため
+# dirty チェック（git管理下のみ）。ロールバックの安全網を確保するため。
+# installPath="." でもリポジトリ全体ではなく owned dirs（+ .aidlc-sync）に限定する。
+DIRTY_PATHS=()
+while IFS= read -r d; do
+  [ -z "$d" ] && continue
+  DIRTY_PATHS+=("$d")
+done < <(aidlc_owned_dirs "$INSTALL_PATH" "$BASE")
+DIRTY_PATHS+=("$AIDLC_SYNC_DIR")
 if [ "$DRY_RUN" -eq 0 ] && aidlc_have git && git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
-  dirty="$(git -C "$PROJECT_ROOT" status --porcelain -- "$INSTALL_PATH" "$AIDLC_SYNC_DIR" 2>/dev/null)"
+  dirty="$(git -C "$PROJECT_ROOT" status --porcelain -- "${DIRTY_PATHS[@]}" 2>/dev/null)"
   if [ -n "$dirty" ] && [ "$FORCE" -eq 0 ]; then
-    aidlc_warn "$INSTALL_PATH / $AIDLC_SYNC_DIR に未コミットの変更があります:"
+    aidlc_warn "管理対象 (${DIRTY_PATHS[*]}) に未コミットの変更があります:"
     echo "$dirty" | sed 's/^/  /' >&2
     aidlc_die "コミットまたは stash してから実行してください（強行は --force）。これは git checkout で戻せる状態を確保するためです"
   fi
@@ -111,7 +128,7 @@ CLONE="$TMP/upstream"
 aidlc_info "上流を取得中: $REPO ($BRANCH${COMMIT:+ @$COMMIT}) ..."
 NEW_SHA="$(aidlc_fetch_upstream "$CLONE" "$REPO" "$BRANCH" "$COMMIT")" \
   || aidlc_die "上流の取得に失敗しました"
-# kiro は clone 内で build.js を実行して dist を生成（claude は no-op）
+# 取得した dist を正規化（aidlc の動作に不要な内容を除去）。ビルドは不要（上流がコミット済み）。
 aidlc_prepare_dist "$CLONE" "$TOOL" || aidlc_die "dist の準備に失敗しました（tool=${TOOL}）"
 THEIRS="$CLONE/$DIST_ROOT"
 [ -d "$THEIRS" ] || aidlc_die "成果物が見つかりません: $DIST_ROOT"
@@ -134,7 +151,13 @@ if [ "$DRY_RUN" -eq 0 ]; then
   TS="$(date -u +%Y%m%dT%H%M%SZ)"
   BACKUP_REL="$AIDLC_SYNC_DIR/backup-$TS"
   BACKUP_DIR="$PROJECT_ROOT/$BACKUP_REL"
-  aidlc_copy_tree "$INSTALL_DIR" "$BACKUP_DIR" || aidlc_die "install の退避に失敗しました: $BACKUP_DIR"
+  # install の現状を owned dir 単位で、project-root 相対構造を保ったまま退避する
+  # （installPath="." でも PROJECT_ROOT 全体や .git/.aidlc-sync を巻き込まない）。
+  while IFS= read -r d; do
+    [ -z "$d" ] && continue
+    [ -e "$PROJECT_ROOT/$d" ] || continue
+    aidlc_copy_tree "$PROJECT_ROOT/$d" "$BACKUP_DIR/$d" || aidlc_die "install の退避に失敗しました: $BACKUP_DIR/$d"
+  done < <(aidlc_owned_dirs "$INSTALL_PATH" "$BASE")
   rm -rf "$INCOMING"
   aidlc_copy_tree "$THEIRS" "$INCOMING" || aidlc_die "新上流の退避(incoming)に失敗しました: $INCOMING"
   # install を書き換える「前」に pendingUpdate を記録する。途中で中断しても

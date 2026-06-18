@@ -5,29 +5,46 @@
       "id": 0,
       "name": "claude-import",
       "prompt": "今いるプロジェクトに AWS の AI-DLC ワークフロー（aidlc-workflows）の Claude Code 版を導入したい。aidlc を取り込んで。",
-      "expected_output": "Claude Code 版（tool=claude）を import し、.claude/ に成果物、.aidlc-sync/{manifest.json,base/} を生成。manifest は tool=claude / installPath=.claude / distRoot=claude-code/dist/claude/.claude。",
+      "expected_output": "Claude Code 版（tool=claude）を import し、.claude/ に成果物、.aidlc-sync/{manifest.json,base/} を生成。manifest は tool=claude / installPath=.claude / distRoot=dist/claude/.claude。",
       "files": [],
       "assertions": [
         ".aidlc-sync/manifest.json が生成されている",
         "manifest.tool が \"claude\" である",
         "manifest.installPath が \".claude\" である",
-        "manifest.upstream.distRoot が \"claude-code/dist/claude/.claude\" である（旧 dist/kiro/.kiro ではない）",
+        "manifest.upstream.distRoot が \"dist/claude/.claude\" である（旧 claude-code/dist/claude/.claude ではない）",
         "install 先 .claude/ に成果物ファイルが存在する（例: CLAUDE.md, agents/ など）",
-        ".claude/.mcp.json は取り込まれていない（同梱対象外のため）"
+        ".claude/settings.json は hooks フィールドのみで、env/model/permissions 等の環境固有設定が除去されている"
       ]
     },
     {
       "id": 1,
       "name": "kiro-import",
-      "prompt": "このリポジトリに aidlc workflow を kiro 版で入れて。",
-      "expected_output": "kiro 版（tool=kiro）を import。一時 clone 内で build.js を実行して成果物を生成し、.kiro/ に配置。manifest は tool=kiro / installPath=.kiro / distRoot=kiro/dist/kiro-ide/.kiro。",
+      "prompt": "このリポジトリに aidlc workflow を kiro（Kiro CLI）版で入れて。",
+      "expected_output": "Kiro CLI 版（tool=kiro）を import。上流のビルド済み dist をそのまま .kiro/ に配置（ビルドは行わない）。manifest は tool=kiro / installPath=.kiro / distRoot=dist/kiro/.kiro。",
       "files": [],
       "assertions": [
         ".aidlc-sync/manifest.json が生成されている",
         "manifest.tool が \"kiro\" である",
         "manifest.installPath が \".kiro\" である",
-        "manifest.upstream.distRoot が \"kiro/dist/kiro-ide/.kiro\" である（旧 dist/kiro/.kiro ではない）",
-        "install 先 .kiro/ にビルド成果物が存在する（例: agents/, skills/ など）"
+        "manifest.upstream.distRoot が \"dist/kiro/.kiro\" である",
+        "install 先 .kiro/ に成果物が存在する（例: agents/, skills/ など）",
+        "ビルド（node / build.js）を実行していない（上流 dist はコミット済みのため）"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "codex-import",
+      "prompt": "このプロジェクトに aidlc workflow の Codex CLI 版を取り込んで。",
+      "expected_output": "Codex CLI 版（tool=codex）を import。installPath=. （project root）に .codex/ と .agents/ を配置し、AGENTS.md は取り込まない。manifest は tool=codex / installPath=. / distRoot=dist/codex。既存のプロジェクトファイルは破壊しない。",
+      "files": [],
+      "assertions": [
+        ".aidlc-sync/manifest.json が生成されている",
+        "manifest.tool が \"codex\" である",
+        "manifest.installPath が \".\" である",
+        "manifest.upstream.distRoot が \"dist/codex\" である",
+        "project root 直下に .codex/ と .agents/ の両方が生成されている",
+        "AGENTS.md は取り込まれていない（正規化で除去されるため）",
+        "import 前から存在したプロジェクトの他ファイルや .git が消えていない"
       ]
     }
   ]

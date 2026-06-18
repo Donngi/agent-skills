@@ -10,19 +10,14 @@
 出たら、それは update 対象。`aidlc_merge.sh` を使う。
 
 ### `成果物が見つかりません: <distRoot>`
-取得したブランチに成果物が無い／ツール名が違う。`--branch v2` か、`--tool` が対応ツール（`kiro` /
-`claude`）か確認する。kiro の dist は一時 clone 内でのビルド（`build.js`）で生成されるため、
-ビルドが失敗していると成果物が無い状態になる（下記参照）。
-
-### kiro 選択時に `kiro のビルドには node が必要です` / `kiro のビルドに失敗しました`
-kiro は上流にソースのみがあり、取得した一時 clone 内で `node build/kiro-ide/build.js` を実行して
-成果物を生成する。`node` が PATH に無い、または build.js がエラーになると停止する。対処:
-- `node` を導入する（claude を取り込む場合は node 不要）。
-- それでも解決しなければ、ビルド不要な `--tool claude` の利用を検討する。
+取得したブランチに成果物が無い／ツール名が違う。`--branch v2` か、`--tool` が対応ツール
+（`claude` / `kiro`(=Kiro CLI) / `codex`）か確認する。上流 v2 は全 dist をコミット済みのため、
+通常はブランチ／ツール指定の取り違えが原因。
 
 ### dirty で merge が停止する
-`.kiro` / `.aidlc-sync` に未コミット変更があると、ロールバックの安全網が無いため停止する。
-コミットか stash をしてから再実行。意図的に強行するなら `--force`（非推奨、戻せなくなる可能性）。
+管理対象（claude なら `.claude`、kiro なら `.kiro`、codex なら `.codex`/`.agents`）や `.aidlc-sync`
+に未コミット変更があると、ロールバックの安全網が無いため停止する。コミットか stash をしてから再実行。
+意図的に強行するなら `--force`（非推奨、戻せなくなる可能性）。
 
 ### finalize が「未解決の衝突マーカーが残っています」で止まる
 表示されたファイルに `<<<<<<<` / `>>>>>>>` が残っている。すべて解消してマーカー行を消す。
@@ -40,15 +35,17 @@ delete-modified / delete-update / binary などマーカーの付かない衝突
   `installPath` 側に残っているので、import 先をクリーンにする必要がある点に注意）。
 
 ### 保留中 update が残ったまま別の操作をしたい
-`aidlc_merge.sh --abort` で破棄してから操作する。abort は merge 直前の installPath を
+`aidlc_merge.sh --abort` で破棄してから操作する。abort は merge 直前の install（owned dirs）を
 `backup-<ts>/` から復元する。
 
-### 旧構成の manifest で update が失敗する（`distRoot: dist/kiro/.kiro`）
-上流 v2 が再構成され、旧パス `dist/kiro/.kiro` は存在しなくなった（kiro は `kiro/dist/kiro-ide/.kiro`、
-claude は `claude-code/dist/claude/.claude`）。旧 manifest を持つ既存プロジェクトは diff/update 時に
-`成果物が見つかりません` で停止する。対処:
-- 再 import する（`.aidlc-sync/` を削除して `aidlc_import.sh --tool kiro` で取り込み直す）。
-- もしくは manifest の `upstream.distRoot` を `kiro/dist/kiro-ide/.kiro` に手修正する。
+### 旧構成の manifest（古い `upstream.distRoot` が残っている）
+上流 v2 はディレクトリ構成を再編し、現在の dist は `dist/claude/.claude` / `dist/kiro/.kiro` /
+`dist/codex` にコミット済み（旧 `claude-code/dist/...` や `kiro/dist/kiro-ide/.kiro` は消滅）。
+diff/merge/finalize は **manifest 保存値ではなく `tool` から distRoot を再導出**するため、古い
+`distRoot` を持つ既存 manifest でもそのまま update でき（self-heal）、finalize 時に `distRoot` は
+最新値へ書き戻される。手修正は不要。
+- 旧 `tool: "kiro"`（旧 Kiro IDE）の install は、update すると Kiro CLI 版（`dist/kiro/.kiro`）へ
+  移行する（いずれも `.kiro/` 配下のため install 先は変わらない）。意図が違う場合は再 import する。
 
 ### git が無い環境
 `curl` + `tar` があれば codeload tarball で取得を試みる（ブランチ tip のみ・git ログ補助は無効）。

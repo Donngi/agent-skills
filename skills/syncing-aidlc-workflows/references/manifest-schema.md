@@ -10,9 +10,9 @@
 | `schemaVersion` | number | スキーマ版。将来の拡張（複数ツール同時 vendoring 等）の互換判定用 |
 | `upstream.repo` | string | 上流リポジトリ URL（既定 `https://github.com/awslabs/aidlc-workflows`） |
 | `upstream.branch` | string | 取得ブランチ（既定 `v2`） |
-| `upstream.distRoot` | string | 上流 repo 内の成果物ルート（kiro: `kiro/dist/kiro-ide/.kiro` / claude: `claude-code/dist/claude/.claude`） |
-| `tool` | string | 取り込んだツール名（`kiro` または `claude`） |
-| `installPath` | string | ターゲット内の配置先（既定 kiro=`.kiro` / claude=`.claude`）。`files[].path` と `base/` はこの相対構造 |
+| `upstream.distRoot` | string | 上流 repo 内の成果物ルート（claude: `dist/claude/.claude` / kiro: `dist/kiro/.kiro` / codex: `dist/codex`）。診断用の記録だが、diff/merge/finalize は実際には `tool` から再導出する（上流パス再編への self-heal）。finalize 時に最新値へ書き戻される |
+| `tool` | string | 取り込んだツール名（`claude` / `kiro`(=Kiro CLI) / `codex`） |
+| `installPath` | string | ターゲット内の配置先（既定 claude=`.claude` / kiro=`.kiro` / codex=`.`）。`files[].path` と `base/` はこの相対構造（codex は project root 相対で `.codex/...`・`.agents/...`） |
 | `importedCommit` | string(40) | 現在取り込んでいる上流の full SHA。**差分の起点／冪等判定の鍵** |
 | `importedAt` | string | 初回 import 時刻（ISO8601 UTC） |
 | `lastUpdateCommit` | string\|null | 最後に finalize で確定した上流 SHA。未 update なら null |
@@ -25,7 +25,7 @@
 | `pendingUpdate` | object? | update 確定待ちのときだけ存在。finalize/abort で消える |
 | `pendingUpdate.targetCommit` | string | 取り込もうとしている新上流 SHA |
 | `pendingUpdate.startedAt` | string | merge 実行時刻 |
-| `pendingUpdate.backup` | string | `installPath` 退避先（`.aidlc-sync/backup-<ts>` の相対パス） |
+| `pendingUpdate.backup` | string | install 退避先（`.aidlc-sync/backup-<ts>` の相対パス。owned dirs を project-root 相対構造で保存） |
 | `pendingUpdate.conflicts[]` | array | 衝突一覧 `{path, kind, detail}`。`kind` は merge/binary/delete-modified/delete-update/add-add |
 
 ## translatedSha256 の意味
@@ -46,7 +46,7 @@
   "upstream": {
     "repo": "https://github.com/awslabs/aidlc-workflows",
     "branch": "v2",
-    "distRoot": "kiro/dist/kiro-ide/.kiro"
+    "distRoot": "dist/kiro/.kiro"
   },
   "tool": "kiro",
   "installPath": ".kiro",
@@ -61,5 +61,7 @@
 }
 ```
 
-claude を取り込んだ場合は `upstream.distRoot` が `claude-code/dist/claude/.claude`、`tool` が `claude`、
+claude を取り込んだ場合は `upstream.distRoot` が `dist/claude/.claude`、`tool` が `claude`、
 `installPath` が `.claude`（既定）になり、`files[].path` は `.claude/` 起点の相対パスになる。
+codex の場合は `distRoot` が `dist/codex`、`installPath` が `.`（project root）になり、`files[].path`
+は `.codex/...` と `.agents/...`（project root 相対）になる。

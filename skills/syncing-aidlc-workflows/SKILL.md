@@ -1,14 +1,14 @@
 ---
 name: syncing-aidlc-workflows
-description: AWSの aidlc-workflows（AI-DLC ワークフロー, awslabs/aidlc-workflows の v2 ブランチ）の成果物を、作業中の任意のプロジェクトに取り込み、後から差分アップデートするスキル。取り込み時はツール（Kiro / Claude Code）を選んでアセットを配置し、3-way マージでローカルの変更を保持したまま上流の新版を反映する。さらに取り込んだ Markdown の日本語訳を参考物として併せて保存する。「aidlc を取り込んで」「aidlc workflow を入れて」「aidlc を最新に更新して」「上流で何が変わったか差分を見せて」「自分の変更を残したまま aidlc を更新」などのリクエストで必ず使用すること。AI-DLC / aidlc / aidlc-workflows の導入・更新・差分確認はこのスキルが担当する。
+description: AWSの aidlc-workflows（AI-DLC ワークフロー, awslabs/aidlc-workflows の v2 ブランチ）の成果物を、作業中の任意のプロジェクトに取り込み、後から差分アップデートするスキル。取り込み時はハーネス（Claude Code / Kiro CLI / Codex CLI）を選んでアセットを配置し、3-way マージでローカルの変更を保持したまま上流の新版を反映する。さらに取り込んだ Markdown の日本語訳を参考物として併せて保存する。「aidlc を取り込んで」「aidlc workflow を入れて」「aidlc を最新に更新して」「上流で何が変わったか差分を見せて」「自分の変更を残したまま aidlc を更新」などのリクエストで必ず使用すること。AI-DLC / aidlc / aidlc-workflows の導入・更新・差分確認はこのスキルが担当する。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
 # syncing-aidlc-workflows
 
 AWS の `awslabs/aidlc-workflows`（v2 ブランチ）の成果物を任意のプロジェクトに取り込み、
-**ローカル変更を消さずに**差分アップデートする。取り込むツールは **Kiro** と **Claude Code** から選べる。
-取り込んだ Markdown の日本語訳も併せて保存する。
+**ローカル変更を消さずに**差分アップデートする。取り込むハーネスは **Claude Code** /
+**Kiro CLI** / **Codex CLI** から選べる。取り込んだ Markdown の日本語訳も併せて保存する。
 
 決定論的な処理（取得・3-way マージ・整合性検証）は `lib/*.sh` が担い、Claude は
 **対話と判断（ツール選択・衝突解決の促し・日本語訳の生成）**を担う。
@@ -16,10 +16,11 @@ AWS の `awslabs/aidlc-workflows`（v2 ブランチ）の成果物を任意の�
 ## 前提条件
 
 - **必須**: `git`, `jq`（差分 update の 3-way マージは `git merge-file` を使うため git 必須）
-- **kiro を取り込む場合**: `node`（上流 kiro はソースのみで、一時 clone 内で `build.js` を実行して
-  成果物を生成するため。claude はビルド済みのため node 不要）
 - **任意**: `curl`, `tar`（`git` が無い環境での上流取得フォールバック。ただし fallback で動くのは
   import / diff のみで、update（merge）は git が要る。git ログ補助も無効になる）
+
+> 上流 v2 は全ハーネスの成果物を**ビルド済みでコミット**しているため、取り込みに `node` 等の
+> ビルドツールは不要（旧 kiro のような一時 clone 内ビルドは廃止された）。
 
 `lib/` スクリプトは本 SKILL.md と同じ階層にある。以下では本スキルのディレクトリを `${SKILL}` と表記する
 （実体は `.claude/skills/syncing-aidlc-workflows` 等、インストール先により異なる。実行前に `Glob` で
@@ -30,14 +31,15 @@ git リポジトリルートを使う。
 
 ## 重要な原則
 
-- **dist が成果物。プロジェクト内ではビルドしない。** v2 ブランチでは、claude は
-  `claude-code/dist/claude/.claude/` にビルド済み成果物がコミットされておりそのまま取り込む。
-  kiro はソース（`kiro/src/`）のみのため、スクリプトが**使い捨ての一時 clone 内で** `build.js` を
-  実行して dist を生成し、その成果物だけを取り込む。**ターゲットプロジェクト内で build は走らせない。**
+- **dist が成果物。ビルドしない。** v2 ブランチは全ハーネスの成果物を `dist/<harness>/...` に
+  ビルド済みでコミットしている（claude → `dist/claude/.claude/`、Kiro CLI → `dist/kiro/.kiro/`、
+  Codex CLI → `dist/codex/`）。スクリプトは使い捨ての一時 clone からこの dist を取り込むだけで、
+  **ビルドは一切走らせない。**
 - **aidlc の動作に不要な内容は取り込まない（取得 dist を正規化）。** claude の `settings.json` は
   aidlc の動作に必要な `hooks` 登録だけを残し、環境固有・グローバル設定（`env` の Bedrock/AWS_REGION/
   モデル指定、`model`、`effortLevel`、`statusLine`、`permissions`、`companyAnnouncements`）と
   `settings.local.json.example` は除去する。これらはユーザーの Claude Code 環境を上書きしてしまうため。
+  codex は dist 直下の `AGENTS.md` を取り込み対象外として除去する（`.codex/` と `.agents/` のみ取り込む）。
   正規化は取得した一時 clone 上で行い、import/diff/merge すべてが同じ正規化済み dist を base/theirs の
   元にするので 3-way マージは一貫する（`lib/aidlc_common.sh` の `aidlc_normalize_dist`）。
 - **base が 3-way マージの base。改変厳禁。** `${PROJECT}/.aidlc-sync/base/` は「前回取り込んだ
@@ -49,7 +51,6 @@ git リポジトリルートを使う。
 ## 動作上の禁止事項
 
 - `.aidlc-sync/base/` および `.aidlc-sync/incoming/` の手編集
-- **ターゲットプロジェクト内での** `build.js` 実行（kiro のビルドは取得した一時 clone 内でのみ行う）
 - dirty なターゲットでユーザー同意なく `--force` マージを強行すること
 - ワークフローに無い中間ファイルの生成
 
@@ -66,23 +67,26 @@ bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}"
 
 ### A. 初回 import
 
-1. **ツールを確認する。** 取り込むツールをユーザーに確認する。`--tool` は **`kiro`** または **`claude`**
-   （Claude Code）。配置先 `--install-path` は未指定ならツール既定（kiro → `.kiro` / claude → `.claude`）。
-   - `kiro`: 上流はソースのみ。スクリプトが一時 clone 内で `build.js` を実行して成果物を生成する（`node` 必須）。
-   - `claude`: ビルド済み成果物（`claude-code/dist/claude/.claude/`）をそのまま取り込む。
-   - 注意: `claude` は既定配置先 `.claude/` が既存のプロジェクトでは初回 import が停止する（クリーンな
-     配置先が前提）。既存の `.claude` がある場合はユーザーと配置先を相談する。
+1. **ハーネスを確認する。** 取り込むハーネスをユーザーに確認する。`--tool` は次のいずれか。
+   配置先 `--install-path` は未指定ならツール既定。
+   - `claude`（Claude Code）: `dist/claude/.claude/` を `.claude/` へ。`settings.json` は hooks のみに正規化。
+   - `kiro`（Kiro CLI）: `dist/kiro/.kiro/` を `.kiro/` へ。
+   - `codex`（Codex CLI）: `dist/codex/` を **project root** へ（installPath=`.`）。`.codex/` と `.agents/`
+     を配置し、`AGENTS.md` は取り込まない（必要なら上流の `dist/codex/AGENTS.md` を手動でコピーする旨を案内）。
+   - 注意: `claude`/`kiro` は既定配置先（`.claude`/`.kiro`）が既存のプロジェクトでは初回 import が停止する
+     （クリーンな配置先が前提）。既存ディレクトリがある場合はユーザーと配置先を相談する。
+   - 注意: 上流から **Kiro IDE** は対象外（本スキルは Kiro CLI を扱う）。
 
-2. **dry-run で予定を見せる**（任意だが推奨。`--tool` は `kiro` または `claude`）:
+2. **dry-run で予定を見せる**（任意だが推奨）:
    ```bash
    bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool claude --dry-run
    ```
 
 3. **import 実行**:
    ```bash
-   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool claude   # または --tool kiro
+   bash "${SKILL}/lib/aidlc_import.sh" --project-root "${PROJECT}" --tool claude   # または --tool kiro / --tool codex
    ```
-   これで `${PROJECT}/<installPath>/`（実利用。claude なら `.claude/`、kiro なら `.kiro/`）と
+   これで `${PROJECT}/<installPath>/`（実利用。claude→`.claude/`、kiro→`.kiro/`、codex→`.codex/`+`.agents/`）と
    `${PROJECT}/.aidlc-sync/`（manifest + base）が作られる。
 
 4. **日本語訳を生成する**（→ C へ）。import 直後は全 md が翻訳対象。

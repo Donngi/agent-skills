@@ -38,8 +38,12 @@ MANIFEST="$(aidlc_manifest_path "$PROJECT_ROOT")"
 [ -f "$MANIFEST" ] || aidlc_die "manifest が見つかりません"
 
 INSTALL_PATH="$(jq -r '.installPath' "$MANIFEST")"
-case "$INSTALL_PATH" in ""|"."|"/"|*..*) aidlc_die "manifest の installPath が不正です: '$INSTALL_PATH'";; esac
+# "." は codex 等のマルチルート install で正当（破壊的操作は owned dirs に限定する）
+case "$INSTALL_PATH" in ""|"/"|*..*) aidlc_die "manifest の installPath が不正です: '$INSTALL_PATH'";; esac
 INSTALL_DIR="$PROJECT_ROOT/$INSTALL_PATH"
+TOOL="$(jq -r '.tool' "$MANIFEST")"
+# distRoot は tool から再導出し、manifest にも書き戻して旧パスを自己修復する
+DIST_ROOT="$(aidlc_dist_root "$TOOL")" || aidlc_die "未対応のツールです: ${TOOL}（対応: claude, kiro, codex）"
 BASE="$(aidlc_base_root "$PROJECT_ROOT")"
 INCOMING="$(aidlc_incoming_root "$PROJECT_ROOT")"
 SWAP_FLAG="$PROJECT_ROOT/$AIDLC_SYNC_DIR/.swap-in-progress"
@@ -67,7 +71,18 @@ BACKUP_REL="$(jq -r '.pendingUpdate.backup // ""' "$MANIFEST")"
 
 # 1. 残存マーカー検証
 # 衝突マーカーは <<<<<<< と >>>>>>> で判定（======= は markdown 見出し下線と紛れるため使わない）
-markers="$(grep -rIlE '^(<<<<<<<|>>>>>>>)' "$INSTALL_DIR" 2>/dev/null || true)"
+# installPath="." のとき INSTALL_DIR は PROJECT_ROOT を指すため、grep は owned dirs に限定して
+# プロジェクト全体を走査しない（incoming = 新管理対象ツリーからトップレベル項目を導出）。
+OWNED_GREP=()
+while IFS= read -r d; do
+  [ -z "$d" ] && continue
+  OWNED_GREP+=("$PROJECT_ROOT/$d")
+done < <(aidlc_owned_dirs "$INSTALL_PATH" "$INCOMING")
+if [ ${#OWNED_GREP[@]} -gt 0 ]; then
+  markers="$(grep -rIlE '^(<<<<<<<|>>>>>>>)' "${OWNED_GREP[@]}" 2>/dev/null || true)"
+else
+  markers=""
+fi
 if [ -n "$markers" ]; then
   aidlc_warn "未解決の衝突マーカーが残っています:"
   echo "$markers" | sed "s|$PROJECT_ROOT/||; s|^|  |" >&2
@@ -98,8 +113,8 @@ NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # base 入替の途中中断に備え、manifest 確定の前に印を付ける（再開判定に使う）
 : > "$SWAP_FLAG"
 tmp="$(mktemp)" || aidlc_die "一時ファイルを作成できません"
-jq --argjson files "$FILES_JSON" --arg target "$PENDING" --arg at "$NOW" \
-   '.files=$files | .importedCommit=$target | .lastUpdateCommit=$target | .updatedAt=$at | del(.pendingUpdate)' \
+jq --argjson files "$FILES_JSON" --arg target "$PENDING" --arg at "$NOW" --arg distRoot "$DIST_ROOT" \
+   '.files=$files | .importedCommit=$target | .lastUpdateCommit=$target | .updatedAt=$at | .upstream.distRoot=$distRoot | del(.pendingUpdate)' \
    "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST"
 
 # 4. manifest 確定後に base を incoming で総入替

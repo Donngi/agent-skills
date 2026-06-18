@@ -3,15 +3,16 @@
 # aidlc_import.sh - aidlc-workflows の初回インポート
 #
 # Usage:
-#   aidlc_import.sh [--project-root <dir>] [--tool kiro|claude] [--install-path <dir>]
+#   aidlc_import.sh [--project-root <dir>] [--tool claude|kiro|codex] [--install-path <dir>]
 #                   [--repo <url>] [--branch <name>] [--commit <sha>] [--dry-run]
 #
-# install-path 未指定時はツール既定（kiro=.kiro / claude=.claude）。
+# ツール: claude=Claude Code / kiro=Kiro CLI / codex=Codex CLI。
+# install-path 未指定時はツール既定（claude=.claude / kiro=.kiro / codex=.[project root]）。
 #
 # 動作:
 #   1. manifest 既存なら停止（update へ誘導）
 #   2. 上流を一時取得し、選択ツールの成果物(dist)を install-path に配置
-#      （kiro は一時 clone 内で build.js を実行して dist を生成。claude はビルド済み）
+#      （上流はすべての dist をビルド済みでコミットしているためビルドは不要）
 #   3. 同じ内容を .aidlc-sync/base/ に保存（3-way マージの base）
 #   4. manifest.json を生成（importedCommit = 解決SHA）
 #
@@ -47,11 +48,13 @@ aidlc_require jq
 [ -d "$PROJECT_ROOT" ] || aidlc_die "project-root が存在しません: $PROJECT_ROOT"
 PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
 
-DIST_ROOT="$(aidlc_dist_root "$TOOL")" || aidlc_die "未対応のツールです: ${TOOL}（対応: kiro, claude）"
+DIST_ROOT="$(aidlc_dist_root "$TOOL")" || aidlc_die "未対応のツールです: ${TOOL}（対応: claude, kiro, codex）"
 [ -n "$INSTALL_PATH" ] || INSTALL_PATH="$(aidlc_default_install_path "$TOOL")"
-# install-path の妥当性検証（プロジェクト外やルートへの書き込みを防ぐ）
+# install-path の妥当性検証（プロジェクト外やルートへの書き込みを防ぐ）。
+# "."（project root）は codex 等のマルチルート install で正当に使う。粗い破壊的操作は
+# aidlc_owned_dirs でトップレベル項目に限定するため、"." でも PROJECT_ROOT 自体は触らない。
 case "$INSTALL_PATH" in
-  ""|"."|"/"|/*|*..*) aidlc_die "install-path が不正です（プロジェクト相対の安全なパスを指定）: '$INSTALL_PATH'" ;;
+  ""|"/"|/*|*..*) aidlc_die "install-path が不正です（プロジェクト相対の安全なパスを指定）: '$INSTALL_PATH'" ;;
 esac
 
 MANIFEST="$(aidlc_manifest_path "$PROJECT_ROOT")"
@@ -65,7 +68,7 @@ CLONE="$TMP/upstream"
 aidlc_info "上流を取得中: $REPO ($BRANCH${COMMIT:+ @$COMMIT}) ..."
 SHA="$(aidlc_fetch_upstream "$CLONE" "$REPO" "$BRANCH" "$COMMIT")" \
   || aidlc_die "上流の取得に失敗しました"
-# kiro は clone 内で build.js を実行して dist を生成（claude は no-op）
+# 取得した dist を正規化（aidlc の動作に不要な内容を除去）。ビルドは不要（上流がコミット済み）。
 aidlc_prepare_dist "$CLONE" "$TOOL" || aidlc_die "dist の準備に失敗しました（tool=${TOOL}）"
 THEIRS="$CLONE/$DIST_ROOT"
 [ -d "$THEIRS" ] || aidlc_die "成果物が見つかりません: ${DIST_ROOT}（ブランチ/ツールを確認）"
