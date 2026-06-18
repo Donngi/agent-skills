@@ -60,6 +60,17 @@ AWSの`aidlc-workflows`（AI-DLCワークフロー, `awslabs/aidlc-workflows`の
 - 前回取り込み版との上流差分を確認可能。確定は2フェーズ（merge→finalize）で中断・ロールバックが安全
 - 取り込んだMarkdownの日本語訳を参考物として併せて保存（import/updateで差分翻訳）
 
+### generating-aidlc-claude-config
+
+`syncing-aidlc-workflows`が取り込んだKiro形式のAI-DLC成果物（`.kiro/`）から、Claude Code向けの設定一式（`.claude/`）を決定論的に生成するスキル。
+
+- 上流`awslabs/aidlc-workflows`はKiro用ビルドのみ配布のため、それをClaude Codeで動かせる形へ変換
+- 大半は`.kiro/`→`.claude/`の再配置で成立（コンテンツはinstall root相対パス設計）。Kiro固有の変換は3点のみ
+  - `agents/*.json`→`.claude/agents/*.md`（サブエージェント形式へ／ツール名写像 read→Read, write→Write,Edit, shell→Bash）
+  - `hooks/*.kiro.hook`→`.claude/settings.json`の`PostToolUse(Task)`フックへ変換し非破壊マージ
+  - `aidlc-common/**/*.js`内のハードコード`.kiro`パスを`.claude`へ書換え
+- 冪等で再実行可能（上流更新後は再実行するだけで`.claude/`が追従、settings.jsonのフックは重複しない）
+
 ## インストール方法
 
 ```bash
