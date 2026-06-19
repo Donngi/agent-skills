@@ -45,7 +45,9 @@ TOOL="$(jq -r '.tool' "$MANIFEST")"
 # distRoot は tool から再導出し、manifest にも書き戻して旧パスを自己修復する
 DIST_ROOT="$(aidlc_dist_root "$TOOL")" || aidlc_die "未対応のツールです: ${TOOL}（対応: claude, kiro, codex）"
 BASE="$(aidlc_base_root "$PROJECT_ROOT")"
+BASE_DOCS="$(aidlc_base_docs_root "$PROJECT_ROOT")"
 INCOMING="$(aidlc_incoming_root "$PROJECT_ROOT")"
+INCOMING_DOCS="$(aidlc_incoming_docs_root "$PROJECT_ROOT")"
 SWAP_FLAG="$PROJECT_ROOT/$AIDLC_SYNC_DIR/.swap-in-progress"
 
 PENDING="$(jq -r 'if .pendingUpdate then .pendingUpdate.targetCommit else "" end' "$MANIFEST")"
@@ -58,6 +60,10 @@ if [ -z "$PENDING" ]; then
     aidlc_warn "中断された確定を検出しました。base 入替を完了します。"
     if [ -d "$INCOMING" ]; then
       rm -rf "${BASE:?}"; mkdir -p "$(dirname "$BASE")"; mv "$INCOMING" "$BASE"
+    fi
+    # 参考docs を base/docs へ復元（base 総入替で旧 base/docs は消えるため INCOMING 移送の後に行う）
+    if [ -d "$INCOMING_DOCS" ]; then
+      rm -rf "${BASE_DOCS:?}"; mkdir -p "$(dirname "$BASE_DOCS")"; mv "$INCOMING_DOCS" "$BASE_DOCS"
     fi
     rm -f "$SWAP_FLAG"
     aidlc_info "base 入替を完了しました。"
@@ -109,25 +115,45 @@ FILES_JSON="$(
   | jq --argjson tr "$OLD_TR" 'map(if $tr[.path] then . + {translatedSha256:$tr[.path]} else . end)'
 )"
 
+# docFiles も incoming-docs から再生成（docs はマージせず総入替）。translatedSha256 は path 単位で
+# 旧 docFiles から引き継ぐ（原文が変わった docs だけが翻訳対象に再浮上する）。
+OLD_TR_DOCS="$(jq -c '[(.docFiles // [])[]|select(.translatedSha256)|{key:.path,value:.translatedSha256}]|from_entries' "$MANIFEST")"
+DOCS_JSON="[]"
+if [ -d "$INCOMING_DOCS" ]; then
+  DOCS_JSON="$(
+    while IFS= read -r rel; do
+      [ -z "$rel" ] && continue
+      printf '%s/%s\t%s\n' "$AIDLC_DOCS_PREFIX" "$rel" "$(aidlc_sha256 "$INCOMING_DOCS/$rel")"
+    done < <(aidlc_list_rel_md "$INCOMING_DOCS") \
+    | jq -R -s 'split("\n")|map(select(length>0))|map(split("\t"))|map({path:.[0],sha256:.[1]})' \
+    | jq --argjson tr "$OLD_TR_DOCS" 'map(if $tr[.path] then . + {translatedSha256:$tr[.path]} else . end)'
+  )"
+fi
+
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 # base 入替の途中中断に備え、manifest 確定の前に印を付ける（再開判定に使う）
 : > "$SWAP_FLAG"
 tmp="$(mktemp)" || aidlc_die "一時ファイルを作成できません"
-jq --argjson files "$FILES_JSON" --arg target "$PENDING" --arg at "$NOW" --arg distRoot "$DIST_ROOT" \
-   '.files=$files | .importedCommit=$target | .lastUpdateCommit=$target | .updatedAt=$at | .upstream.distRoot=$distRoot | del(.pendingUpdate)' \
+jq --argjson files "$FILES_JSON" --argjson docFiles "$DOCS_JSON" --arg target "$PENDING" --arg at "$NOW" --arg distRoot "$DIST_ROOT" \
+   '.files=$files | .docFiles=$docFiles | .importedCommit=$target | .lastUpdateCommit=$target | .updatedAt=$at | .upstream.distRoot=$distRoot | del(.pendingUpdate)' \
    "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST"
 
 # 4. manifest 確定後に base を incoming で総入替
 rm -rf "${BASE:?}"
 mkdir -p "$(dirname "$BASE")"
 mv "$INCOMING" "$BASE"
+# 参考docs を base/docs へ復元（base 総入替で旧 base/docs は消えるため、必ず INCOMING 移送の後）。
+# incoming-docs が無い＝上流から docs が消えた場合は base/docs も無いまま（docFiles も空）。
+if [ -d "$INCOMING_DOCS" ]; then
+  rm -rf "${BASE_DOCS:?}"; mkdir -p "$(dirname "$BASE_DOCS")"; mv "$INCOMING_DOCS" "$BASE_DOCS"
+fi
 rm -f "$SWAP_FLAG"
 
 # 5. 後始末
 [ -n "$BACKUP_REL" ] && [ "$BACKUP_REL" != "null" ] && rm -rf "$PROJECT_ROOT/${BACKUP_REL:?}"
 
 MD_TODO="$(
-  jq -r '.files[]|select(.path|endswith(".md"))|select((.translatedSha256 // "")!=.sha256)|.path' "$MANIFEST" | wc -l | tr -d ' '
+  jq -r '(.files + (.docFiles // []))[]|select(.path|endswith(".md"))|select((.translatedSha256 // "")!=.sha256)|.path' "$MANIFEST" | wc -l | tr -d ' '
 )"
 aidlc_info ""
 aidlc_info "=== update 確定 ==="

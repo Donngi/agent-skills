@@ -76,11 +76,22 @@ THEIRS="$CLONE/$DIST_ROOT"
 # 取り込み対象一覧
 FILE_COUNT="$(aidlc_list_rel "$THEIRS" | wc -l | tr -d ' ')"
 
+# 参考ドキュメント(docs)。dist_root の外（clone ルート直下）にあるハーネス非依存の Markdown。
+# インストールはせず base/docs/ にスナップショットして翻訳対象にするだけ。
+DOCS_SRC_DIR="$CLONE/$AIDLC_DOCS_SRC"
+DOC_COUNT=0
+[ -d "$DOCS_SRC_DIR" ] && DOC_COUNT="$(aidlc_list_rel_md "$DOCS_SRC_DIR" | wc -l | tr -d ' ')"
+
 if [ "$DRY_RUN" -eq 1 ]; then
   aidlc_info ""
   aidlc_info "=== dry-run: 取り込み予定 (${FILE_COUNT} files, commit ${SHA:0:12}) ==="
   aidlc_info "  install-path: $INSTALL_PATH"
   aidlc_list_rel "$THEIRS" | sed 's/^/  + /'
+  if [ "$DOC_COUNT" -gt 0 ]; then
+    aidlc_info ""
+    aidlc_info "  参考docs（翻訳のみ・非インストール, ${DOC_COUNT} md）→ base/$AIDLC_DOCS_PREFIX/ :"
+    aidlc_list_rel_md "$DOCS_SRC_DIR" | sed "s|^|  + $AIDLC_DOCS_PREFIX/|"
+  fi
   exit 0
 fi
 
@@ -105,14 +116,34 @@ rm -rf "${BASE:?}" "$(aidlc_incoming_root "$PROJECT_ROOT")"
 aidlc_copy_tree "$THEIRS" "$INSTALL_DIR" || aidlc_die "install へのコピーに失敗しました: $INSTALL_DIR"
 aidlc_copy_tree "$THEIRS" "$BASE" || aidlc_die "base へのコピーに失敗しました: $BASE"
 
-# manifest 生成
+# 参考docs を base/docs/ にスナップショット（install 先へはコピーしない＝参考専用・マージ非対象）
+BASE_DOCS="$(aidlc_base_docs_root "$PROJECT_ROOT")"
+if [ "$DOC_COUNT" -gt 0 ]; then
+  aidlc_copy_tree_md "$DOCS_SRC_DIR" "$BASE_DOCS" || aidlc_die "docs の base スナップショットに失敗しました: $BASE_DOCS"
+fi
+
+# manifest 生成。files[] は installed 資産のみ（dist=THEIRS から列挙）。
+# base には docs スナップショット(base/docs/)も含まれるため、BASE ではなく THEIRS を列挙元にして
+# docs が files[] に混入しないようにする（sha/mode は同一内容の base/<rel> から算出）。
 FILES_JSON="$(
   while IFS= read -r rel; do
     [ -z "$rel" ] && continue
     printf '%s\t%s\t%s\n' "$rel" "$(aidlc_sha256 "$BASE/$rel")" "$(aidlc_mode "$BASE/$rel")"
-  done < <(aidlc_list_rel "$BASE") \
+  done < <(aidlc_list_rel "$THEIRS") \
   | jq -R -s 'split("\n") | map(select(length>0)) | map(split("\t")) | map({path: .[0], sha256: .[1], mode: .[2]})'
 )"
+
+# docFiles 生成（path は docs/ プレフィックス付き。base/docs/<rel> と reference-ja/docs/<rel> に対応）
+DOCS_JSON="[]"
+if [ "$DOC_COUNT" -gt 0 ]; then
+  DOCS_JSON="$(
+    while IFS= read -r rel; do
+      [ -z "$rel" ] && continue
+      printf '%s/%s\t%s\n' "$AIDLC_DOCS_PREFIX" "$rel" "$(aidlc_sha256 "$BASE_DOCS/$rel")"
+    done < <(aidlc_list_rel_md "$DOCS_SRC_DIR") \
+    | jq -R -s 'split("\n") | map(select(length>0)) | map(split("\t")) | map({path: .[0], sha256: .[1]})'
+  )"
+fi
 
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 mkdir -p "$(dirname "$MANIFEST")"
@@ -122,6 +153,7 @@ jq -n \
   --arg tool "$TOOL" --arg install "$INSTALL_PATH" \
   --arg commit "$SHA" --arg at "$NOW" \
   --argjson files "$FILES_JSON" \
+  --argjson docFiles "$DOCS_JSON" \
   '{
      schemaVersion: $sv,
      upstream: { repo: $repo, branch: $branch, distRoot: $distRoot },
@@ -130,27 +162,32 @@ jq -n \
      importedCommit: $commit,
      importedAt: $at,
      lastUpdateCommit: null,
-     files: $files
+     files: $files,
+     docFiles: $docFiles
    }' > "$MANIFEST"
 
 # 一時生成物（incoming/backup/sentinel）の誤コミットを防ぐ .gitignore を置く。
 # manifest と base は追跡対象として残す。
 cat > "$PROJECT_ROOT/$AIDLC_SYNC_DIR/.gitignore" <<'GITIGNORE'
 /incoming/
+/incoming-docs/
 /backup-*/
 /.swap-in-progress
 /.restore-tmp
 GITIGNORE
 
-MD_COUNT="$(aidlc_list_rel "$BASE" | grep -c '\.md$' || true)"
+# 翻訳対象 md の総数 = installed 資産の md（base 直下、docs スナップショットは除く）+ 参考docs
+INSTALLED_MD_COUNT="$(aidlc_list_rel "$THEIRS" | grep -c '\.md$' || true)"
+TOTAL_MD_COUNT=$((INSTALLED_MD_COUNT + DOC_COUNT))
 aidlc_info ""
 aidlc_info "=== import 完了 ==="
 aidlc_info "  commit       : $SHA"
 aidlc_info "  install-path : $INSTALL_PATH (${FILE_COUNT} files)"
 aidlc_info "  manifest     : $AIDLC_SYNC_DIR/manifest.json"
 aidlc_info "  base         : $AIDLC_SYNC_DIR/base/ (3-wayマージのbase)"
+[ "$DOC_COUNT" -gt 0 ] && aidlc_info "  参考docs     : $AIDLC_SYNC_DIR/base/$AIDLC_DOCS_PREFIX/ (${DOC_COUNT} md・翻訳のみ/非インストール)"
 aidlc_info ""
 aidlc_info "次のステップ:"
-aidlc_info "  1. 日本語訳が必要な md は ${MD_COUNT} 件。reference-ja/ へ翻訳を生成してください。"
+aidlc_info "  1. 日本語訳が必要な md は ${TOTAL_MD_COUNT} 件（install資産 ${INSTALLED_MD_COUNT} + 参考docs ${DOC_COUNT}）。reference-ja/ へ翻訳を生成してください。"
 aidlc_info "     対象一覧: aidlc_status.sh --project-root '$PROJECT_ROOT' --translation-todo"
 aidlc_info "  2. .aidlc-sync/ ごとコミットすると base をチーム共有でき再現性が出ます。"

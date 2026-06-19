@@ -17,6 +17,12 @@ AIDLC_DEFAULT_TOOL="kiro"
 AIDLC_SYNC_DIR=".aidlc-sync"      # ターゲットrepo直下のメタデータディレクトリ名
 AIDLC_SCHEMA_VERSION=1
 
+# 上流 repo ルート相対の参考ドキュメント置き場（dist_root とは独立・ハーネス非依存）。
+#   ここの .md は「翻訳するがインストールも 3-way マージもしない」参考専用として扱う。
+#   base 内では base/<AIDLC_DOCS_PREFIX>/... に置き、manifest の docFiles[] で追跡する。
+AIDLC_DOCS_SRC="docs"
+AIDLC_DOCS_PREFIX="docs"          # base/ と reference-ja/ 内での docs サブツリー名
+
 # ツール名 → 上流repo内の成果物(dist)ルート
 #   いずれもビルド済み成果物が上流にコミット済み（dist/<tool>/...）。そのまま取り込める。
 #   claude : Claude Code        → dist/claude/.claude
@@ -144,6 +150,12 @@ aidlc_list_rel() {
   ( cd "$root" && find . -type f | sed 's|^\./||' | LC_ALL=C sort )
 }
 
+# .md のみのファイル列挙（root配下の相対パス、順序固定）。
+# 参考ドキュメント(docs)は .md だけが翻訳対象なので、base へのスナップショットも .md に限定する。
+aidlc_list_rel_md() {
+  aidlc_list_rel "$1" | grep '\.md$' || true
+}
+
 # ツリーをまるごとコピー（dst側のディレクトリは都度作成）
 # コピー失敗時は即座に非ゼロを返す（呼び出し側で || aidlc_die して部分コピーでの
 # データ消失を防ぐこと）。
@@ -156,13 +168,25 @@ aidlc_copy_tree() {
   done < <(aidlc_list_rel "$src")
 }
 
+# .md だけをコピー（docs スナップショット用）。src 配下の .md を dst へ同じ相対構造で複製する。
+aidlc_copy_tree_md() {
+  local src="$1" dst="$2" rel
+  while IFS= read -r rel; do
+    [ -z "$rel" ] && continue
+    mkdir -p "$dst/$(dirname "$rel")" || return 1
+    cp "$src/$rel" "$dst/$rel" || return 1
+  done < <(aidlc_list_rel_md "$src")
+}
+
 # --------------------------------------------------------------------------
 # パス解決
 # --------------------------------------------------------------------------
 aidlc_manifest_path()   { echo "$1/$AIDLC_SYNC_DIR/manifest.json"; }       # $1=project root
 aidlc_base_root()   { echo "$1/$AIDLC_SYNC_DIR/base"; }
+aidlc_base_docs_root()  { echo "$1/$AIDLC_SYNC_DIR/base/$AIDLC_DOCS_PREFIX"; }  # base 内 docs スナップショット
 aidlc_reference_ja_root(){ echo "$1/$AIDLC_SYNC_DIR/reference-ja"; }
 aidlc_incoming_root()   { echo "$1/$AIDLC_SYNC_DIR/incoming"; }
+aidlc_incoming_docs_root(){ echo "$1/$AIDLC_SYNC_DIR/incoming-docs"; }      # update 確定待ちの docs（finalで base/docs へ）
 
 # install が所有するトップレベル「項目」を project-root 相対で列挙する。
 #   aidlc_owned_dirs <install_path> <source_root>

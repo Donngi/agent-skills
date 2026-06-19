@@ -5,7 +5,7 @@
       "id": 0,
       "name": "claude-import",
       "prompt": "今いるプロジェクトに AWS の AI-DLC ワークフロー（aidlc-workflows）の Claude Code 版を導入したい。aidlc を取り込んで。",
-      "expected_output": "Claude Code 版（tool=claude）を import し、.claude/ に成果物、.aidlc-sync/{manifest.json,base/} を生成。manifest は tool=claude / installPath=.claude / distRoot=dist/claude/.claude。",
+      "expected_output": "Claude Code 版（tool=claude）を import し、.claude/ に成果物、.aidlc-sync/{manifest.json,base/} を生成。manifest は tool=claude / installPath=.claude / distRoot=dist/claude/.claude。上流 docs/ は base/docs/ にスナップショットし docFiles[] に記録（install はしない）。",
       "files": [],
       "assertions": [
         ".aidlc-sync/manifest.json が生成されている",
@@ -13,7 +13,11 @@
         "manifest.installPath が \".claude\" である",
         "manifest.upstream.distRoot が \"dist/claude/.claude\" である（旧 claude-code/dist/claude/.claude ではない）",
         "install 先 .claude/ に成果物ファイルが存在する（例: CLAUDE.md, agents/ など）",
-        ".claude/settings.json は hooks フィールドのみで、env/model/permissions 等の環境固有設定が除去されている"
+        ".claude/settings.json は hooks フィールドのみで、env/model/permissions 等の環境固有設定が除去されている",
+        ".aidlc-sync/base/docs/ に上流 docs の Markdown がスナップショットされている（例: docs/README.md, docs/guide/*, docs/reference/*）",
+        "manifest.docFiles[] が存在し、各 path が \"docs/\" で始まる（例: docs/guide/00-introduction.md）",
+        "install 先 .claude/ には docs/ が配置されていない（docs は参考専用でインストールしない）",
+        "aidlc_status.sh --translation-todo の出力に install 資産の md と docs/ の md の両方が含まれる"
       ]
     },
     {

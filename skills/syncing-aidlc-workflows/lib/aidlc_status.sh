@@ -54,9 +54,11 @@ list_local_changes() {
   done < <(tracked_paths)
 }
 
-# 翻訳が必要な md（translatedSha256 が無い or sha256 と不一致）
+# 翻訳が必要な md（translatedSha256 が無い or sha256 と不一致）。
+# installed 資産(files[]) と 参考docs(docFiles[]) の両方を対象にする。path は base/<path> と
+# reference-ja/<path> にそのまま対応する（docFiles は docs/ プレフィックス付き）。
 list_translation_todo() {
-  jq -r '.files[]
+  jq -r '(.files + (.docFiles // []))[]
           | select(.path | endswith(".md"))
           | select((.translatedSha256 // "") != .sha256)
           | .path' "$MANIFEST"
@@ -73,11 +75,13 @@ case "$ACTION" in
 
   mark)
     [ -n "$MARK_PATH" ] || aidlc_die "--mark-translated にはパスが必要です"
-    exists="$(jq -r --arg p "$MARK_PATH" '[.files[]|select(.path==$p)]|length' "$MANIFEST")"
+    # files[]（installed）と docFiles[]（参考docs）のどちらに属していても記録できるようにする
+    exists="$(jq -r --arg p "$MARK_PATH" '[(.files + (.docFiles // []))[]|select(.path==$p)]|length' "$MANIFEST")"
     [ "$exists" = "0" ] && aidlc_die "manifest に存在しないパスです: $MARK_PATH"
     tmp="$(mktemp)" || aidlc_die "一時ファイルを作成できません"
     jq --arg p "$MARK_PATH" \
-       '.files |= map(if .path==$p then .translatedSha256 = .sha256 else . end)' \
+       '.files |= map(if .path==$p then .translatedSha256 = .sha256 else . end)
+        | .docFiles |= ((. // []) | map(if .path==$p then .translatedSha256 = .sha256 else . end))' \
        "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST"
     aidlc_info "翻訳済みとして記録: $MARK_PATH"
     ;;

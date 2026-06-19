@@ -47,6 +47,10 @@ git リポジトリルートを使う。
 - **update は merge → finalize の2フェーズ。** 衝突が残っている間は base を進めない。これにより
   中断・再開・ロールバックが安全に成立する。
 - **reference-ja はマージ対象外の参考物。** 日本語訳は最新上流の参考であり、3-way マージには関与しない。
+- **参考docs も翻訳対象（インストールはしない）。** 上流 repo 直下の `docs/`（AI-DLC のガイド/リファレンス。
+  dist_root の外にあるハーネス非依存の Markdown）は、install 先には配置せず `.aidlc-sync/base/docs/` に
+  スナップショットして翻訳のみ行う。3-way マージには関与せず、update 時は base 内の docs を上流最新で
+  まるごと差し替える。manifest では `files[]`（installed 資産）とは別の `docFiles[]` で追跡する。
 
 ## 動作上の禁止事項
 
@@ -132,10 +136,14 @@ bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}"
 bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}" --translation-todo
 ```
 
+この一覧は **install 資産（`files[]`）と 参考docs（`docFiles[]`＝上流 `docs/` 由来）の両方**を含む。
+docs の md は `docs/...` のパスで出る。**ここに出た md は 1 つ残らず翻訳対象**であり、件数が多くても
+（claude では install 資産＋docs で計 200 件超になりうる）勝手に一部だけで打ち切らないこと。
+
 各対象 md について:
 
 1. 原文を読む: `${PROJECT}/.aidlc-sync/base/<相対パス>`（= 最新上流の無改変版。install 先のローカル
-   変更込みファイルではなく、必ず base を原文とする）。
+   変更込みファイルではなく、必ず base を原文とする）。docs も同じく `base/docs/...` を原文とする。
 2. 日本語訳を `${PROJECT}/.aidlc-sync/reference-ja/<相対パス>` に同じ相対構造で `Write` する。
    翻訳方針・用語統一は [references/translation-guide.md](references/translation-guide.md) に従う。
 3. 翻訳済みを記録する:
@@ -143,7 +151,10 @@ bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}" --translation-to
    bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}" --mark-translated "<相対パス>"
    ```
 
-全 todo が消えるまで繰り返す。上流で削除された md の訳は `reference-ja/` から削除してよい。
+**完了ゲート: `--translation-todo` の出力が空になるまで繰り返す。** 各 md を訳すたびに即
+`--mark-translated` で記録すれば進捗は中断・再開しても失われない。多数あって一度に終わらない場合も、
+途中で「完了」と報告せず、`--translation-todo` が 0 件になるまで翻訳を続ける（残ったまま終えると
+次回も未翻訳と判定され続ける）。上流で削除された md の訳は `reference-ja/` から削除してよい。
 
 ## スクリプト一覧（`lib/`）
 

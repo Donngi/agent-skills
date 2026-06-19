@@ -34,10 +34,12 @@ ${PROJECT}/
 ├── <installPath>/            # claude→.claude/、kiro→.kiro/。実利用ファイル = "ours"（ローカル変更込み）
 │                             # codex は installPath="." で .codex/ と .agents/ を project root 直下に置く
 └── .aidlc-sync/              # スキルが管理するメタデータ（コミット推奨）
-    ├── manifest.json         # 同期状態の単一の真実
+    ├── manifest.json         # 同期状態の単一の真実（files[]=install資産 / docFiles[]=参考docs）
     ├── base/             # 前回取り込んだ無改変版 = 3-way マージの "base"
-    ├── reference-ja/         # 取り込んだ Markdown の日本語訳（参考物・マージ対象外）
-    ├── incoming/             # update 確定待ちの新上流（finalize で base になる・一時）
+    │   └── docs/             # 上流 docs/ のスナップショット（参考専用・install/マージ対象外）
+    ├── reference-ja/         # 取り込んだ Markdown の日本語訳（参考物・マージ対象外。docs/ も含む）
+    ├── incoming/             # update 確定待ちの新上流 dist（finalize で base になる・一時）
+    ├── incoming-docs/        # update 確定待ちの新上流 docs（finalize で base/docs になる・一時）
     └── backup-<ts>/          # merge 直前の install 退避（abort 用・一時。project-root 相対構造で保存）
 ```
 
@@ -49,6 +51,25 @@ installPath は `.`（project root）になる。このとき backup / 復元 / 
 （`aidlc_common.sh` の `aidlc_owned_dirs`）。これにより `rm -rf "$PROJECT_ROOT/."` のような
 プロジェクト全削除事故や、`.git` を巻き込んだ巨大 backup を防ぐ。owned dirs は管理対象ツリー
 （base / 新上流 / backup）のトップレベル要素から導出する（codex なら `.codex` と `.agents`）。
+
+### 参考docs（翻訳するがインストール/マージしない）
+
+上流 repo 直下の `docs/`（AI-DLC のガイド/リファレンス）は、各ハーネスの dist_root
+（claude なら `dist/claude/.claude`）の**外**にあるハーネス非依存の Markdown 群である。これは人が
+ワークフローを理解するための読み物であり、実利用ファイルではない。そこで本スキルは docs を
+**参考専用**として扱う:
+
+- **install 先には配置しない**（ユーザーの `.claude/` 等を汚さない）。base 内 `base/docs/` にだけ
+  スナップショットし、`reference-ja/docs/` に訳を置く。
+- **3-way マージの対象にしない**。docs はローカル編集を前提としないため、ours/base/theirs の 3 者
+  マージは不要。update 時は `incoming-docs/` に取得した新上流 docs で `base/docs/` を**まるごと差し替える**。
+- manifest では install 資産の `files[]` とは別の **`docFiles[]`** で追跡する。これにより整合性検証・
+  ローカル改変検知・3-way マージ（いずれも `files[]` 前提）に docs が一切干渉しない。
+- 翻訳対象判定は `files[]` と同じ `translatedSha256 != sha256` ルール。`--translation-todo` は両者を
+  まとめて返し、原文が変わった docs だけが update 後に再浮上する（差分翻訳）。
+
+これは「base は install のミラー」という従来不変条件の**例外**にあたるが、`docFiles[]`/`base/docs/` を
+install 系のロジックから切り離すことで、3-way の正しさには影響を与えない。
 
 ## なぜ baseが必須か
 

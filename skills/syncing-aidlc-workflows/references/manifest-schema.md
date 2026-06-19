@@ -22,6 +22,10 @@
 | `files[].sha256` | string | baseの内容ハッシュ。ローカル改変検知・整合性検証に使う |
 | `files[].mode` | string | パーミッション（記録のみ。強制はしない） |
 | `files[].translatedSha256` | string? | md のみ。日本語訳の元にした原文ハッシュ。`!= sha256` なら訳が古い |
+| `docFiles[]` | array | 参考ドキュメント一覧（上流 repo 直下 `docs/` 由来の Markdown）。**翻訳のみ・インストールしない**。`files[]` とは独立 |
+| `docFiles[].path` | string | `docs/` プレフィックス付き相対パス（例 `docs/guide/00-introduction.md`）。`base/<path>`・`reference-ja/<path>` に対応 |
+| `docFiles[].sha256` | string | base スナップショット(`base/docs/...`)の内容ハッシュ |
+| `docFiles[].translatedSha256` | string? | 日本語訳の元にした原文ハッシュ。`!= sha256` なら訳が古い（`files[]` と同じ意味） |
 | `pendingUpdate` | object? | update 確定待ちのときだけ存在。finalize/abort で消える |
 | `pendingUpdate.targetCommit` | string | 取り込もうとしている新上流 SHA |
 | `pendingUpdate.startedAt` | string | merge 実行時刻 |
@@ -36,7 +40,13 @@
   原文が変わった md は `sha256` が変わるので `translatedSha256 != sha256` となり、自動的に翻訳対象になる。
   変わっていない md は一致したままなので再翻訳されない（差分翻訳）。
 
-`aidlc_status.sh --translation-todo` は `select((.translatedSha256 // "") != .sha256)` で対象を抽出する。
+`aidlc_status.sh --translation-todo` は `(.files + (.docFiles // []))[]` を対象に
+`select((.translatedSha256 // "") != .sha256)` で抽出するため、install 資産と参考docs の両方が一覧に出る。
+`--mark-translated <path>` は `files[]`・`docFiles[]` のどちらに属する path でも記録できる。
+
+`docFiles[]` も `files[]` と同じく、finalize で base を新上流に総入替する際に作り直され、
+`translatedSha256` は path 単位で旧値を引き継ぐ（差分翻訳）。違いは docs が install / 3-way マージの
+対象外で、update 時は merge せず base 内の docs（`base/docs/`）をまるごと差し替える点だけ。
 
 ## 例
 
@@ -57,6 +67,10 @@
   "files": [
     { "path": "skills/aidlc-owasp/SKILL.md", "sha256": "…", "mode": "644", "translatedSha256": "…" },
     { "path": "agents/aidlc-builder-agent.json", "sha256": "…", "mode": "644" }
+  ],
+  "docFiles": [
+    { "path": "docs/README.md", "sha256": "…", "translatedSha256": "…" },
+    { "path": "docs/guide/00-introduction.md", "sha256": "…" }
   ]
 }
 ```

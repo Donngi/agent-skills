@@ -48,6 +48,7 @@ case "$INSTALL_PATH" in ""|"/"|*..*) aidlc_die "manifest の installPath が不�
 INSTALL_DIR="$PROJECT_ROOT/$INSTALL_PATH"
 BASE="$(aidlc_base_root "$PROJECT_ROOT")"
 INCOMING="$(aidlc_incoming_root "$PROJECT_ROOT")"
+INCOMING_DOCS="$(aidlc_incoming_docs_root "$PROJECT_ROOT")"
 
 # --------------------------------------------------------------------------
 # --abort: 退避から復元し保留状態を破棄
@@ -82,7 +83,7 @@ if [ "$ABORT" -eq 1 ]; then
   else
     aidlc_warn "退避ディレクトリが見つかりません。install は手動確認してください: $BACKUP"
   fi
-  rm -rf "$INCOMING"
+  rm -rf "$INCOMING" "$INCOMING_DOCS"
   tmp="$(mktemp)" || aidlc_die "一時ファイルを作成できません"
   jq 'del(.pendingUpdate)' "$MANIFEST" > "$tmp" && mv "$tmp" "$MANIFEST"
   aidlc_info "保留中 update を破棄しました。"
@@ -160,6 +161,13 @@ if [ "$DRY_RUN" -eq 0 ]; then
   done < <(aidlc_owned_dirs "$INSTALL_PATH" "$BASE")
   rm -rf "$INCOMING"
   aidlc_copy_tree "$THEIRS" "$INCOMING" || aidlc_die "新上流の退避(incoming)に失敗しました: $INCOMING"
+  # 参考docs を incoming-docs/ にスナップショット（docs は 3-way 非対象。finalize で base/docs を総入替）。
+  # 上流に docs が無ければ空のまま（finalize 側で base/docs を空に揃える）。
+  rm -rf "$INCOMING_DOCS"
+  DOCS_SRC_DIR="$CLONE/$AIDLC_DOCS_SRC"
+  if [ -d "$DOCS_SRC_DIR" ]; then
+    aidlc_copy_tree_md "$DOCS_SRC_DIR" "$INCOMING_DOCS" || aidlc_die "docs の退避(incoming-docs)に失敗しました: $INCOMING_DOCS"
+  fi
   # install を書き換える「前」に pendingUpdate を記録する。途中で中断しても
   # status が保留を検知でき、--abort で backup から安全に戻せる（冪等再試行が成立）。
   NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -255,6 +263,23 @@ done <<< "$universe"
 
 n_conflict=${#CONFLICTS_TSV[@]}
 
+# 参考docs の差分（base/docs ↔ 新上流 docs）。docs はマージせず総入替なので、ここでは
+# 翻訳更新が必要になる md の見積りとして 追加/変更/削除 件数のみ提示する。
+BASE_DOCS="$(aidlc_base_docs_root "$PROJECT_ROOT")"
+DOCS_SRC_DIR="$CLONE/$AIDLC_DOCS_SRC"
+d_add=0; d_mod=0; d_del=0
+docs_universe="$( { aidlc_list_rel_md "$BASE_DOCS"; aidlc_list_rel_md "$DOCS_SRC_DIR"; } | LC_ALL=C sort -u )"
+while IFS= read -r rel; do
+  [ -z "$rel" ] && continue
+  inb=0; int=0
+  [ -e "$BASE_DOCS/$rel" ] && inb=1
+  [ -e "$DOCS_SRC_DIR/$rel" ] && int=1
+  if   [ $inb -eq 0 ] && [ $int -eq 1 ]; then d_add=$((d_add+1))
+  elif [ $inb -eq 1 ] && [ $int -eq 0 ]; then d_del=$((d_del+1))
+  elif [ "$(aidlc_sha256 "$BASE_DOCS/$rel")" != "$(aidlc_sha256 "$DOCS_SRC_DIR/$rel")" ]; then d_mod=$((d_mod+1))
+  fi
+done <<< "$docs_universe"
+
 # サマリ表示
 dry_suffix=""; [ "$DRY_RUN" -eq 1 ] && dry_suffix=" (dry-run)"
 aidlc_info ""
@@ -265,6 +290,7 @@ aidlc_info "  新規追加              : $n_add"
 aidlc_info "  削除                  : $n_del"
 aidlc_info "  上流変更なし          : $n_unchanged"
 aidlc_info "  衝突                  : $n_conflict"
+aidlc_info "  参考docs(翻訳のみ)    : 追加 $d_add / 変更 $d_mod / 削除 $d_del"
 if [ "$n_conflict" -gt 0 ]; then
   aidlc_info ""
   aidlc_info "--- 衝突一覧（手動解決が必要）---"
@@ -276,7 +302,7 @@ if [ "$n_conflict" -gt 0 ]; then
 fi
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  rm -rf "$INCOMING" 2>/dev/null || true
+  rm -rf "$INCOMING" "$INCOMING_DOCS" 2>/dev/null || true
   exit 0
 fi
 

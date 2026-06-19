@@ -6,15 +6,23 @@
 
 ## 対象
 
-- **訳す**: `.md` ファイル（`SKILL.md`, `validation-spec.md`, `protocols/*.md`, `conventions/*.md` 等）。
+- **訳す**: `.md` ファイル。次の 2 系統がある。
+  1. **install 資産**（`files[]`）: 取り込んだハーネス成果物の Markdown（`SKILL.md`, `validation-spec.md`,
+     `protocols/*.md`, `conventions/*.md`, `agents/*.md` 等）。
+  2. **参考docs**（`docFiles[]`）: 上流 repo 直下 `docs/` の Markdown（`docs/guide/*`, `docs/reference/*`,
+     `docs/harness-engineering/*`, `docs/README.md`）。AI-DLC のガイド/リファレンスで、`docs/...` のパスで出る。
+     これらはインストールされず `base/docs/` にスナップショットされた参考専用ドキュメント。
 - **訳さない**: `.json`（エージェント定義）, `.hook`, `.js` などの非 Markdown。機械可読な定義であり
   自然言語訳の価値が低く、誤訳が混乱を生むため。
 
-対象の判定はスクリプトが行う:
+対象の判定はスクリプトが行う（install 資産と参考docs の両方を返す）:
 
 ```bash
 bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}" --translation-todo
 ```
+
+**出力に出た md は 1 件残らず訳す**こと。件数が多くても（claude では計 200 件超になりうる）、
+`--translation-todo` が空になるまで続ける。途中で打ち切らない。
 
 ## 原文は base を使う
 
@@ -26,6 +34,8 @@ install 先（`<installPath>/<相対パス>`）はローカル編集や衝突解
 
 `${PROJECT}/.aidlc-sync/reference-ja/<相対パス>` に、base と同じ相対構造で `Write` する。
 例: 原文 `base/skills/aidlc-owasp/SKILL.md` → 訳 `reference-ja/skills/aidlc-owasp/SKILL.md`。
+参考docs も同様: 原文 `base/docs/guide/00-introduction.md` → 訳 `reference-ja/docs/guide/00-introduction.md`
+（`--translation-todo` が返す `docs/...` のパスをそのまま base/ と reference-ja/ に当てればよい）。
 
 ## 翻訳方針
 
