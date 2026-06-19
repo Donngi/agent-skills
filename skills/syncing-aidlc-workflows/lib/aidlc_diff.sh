@@ -62,7 +62,10 @@ aidlc_info "=== 上流差分: ${IMPORTED:0:12} → ${NEW_SHA:0:12} ==="
 
 # 分類
 added=(); modified=(); deleted=()
-universe="$( { aidlc_list_rel "$BASE"; aidlc_list_rel "$THEIRS"; } | LC_ALL=C sort -u )"
+# base には docs スナップショット(base/docs/)も含まれる。docs は install 資産ではなく docFiles で
+# 別管理する参考物（マージ非対象）なので、上流差分の分類からは docs/ サブツリーを除外する
+# （import.sh が files[] 生成時に THEIRS を列挙して docs 混入を避けているのと同じ理由）。
+universe="$( { aidlc_list_rel "$BASE" | grep -v "^$AIDLC_DOCS_PREFIX/" || true; aidlc_list_rel "$THEIRS"; } | LC_ALL=C sort -u )"
 while IFS= read -r rel; do
   [ -z "$rel" ] && continue
   inb=0; int=0
