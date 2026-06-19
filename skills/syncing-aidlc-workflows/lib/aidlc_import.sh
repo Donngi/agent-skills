@@ -172,6 +172,7 @@ cat > "$PROJECT_ROOT/$AIDLC_SYNC_DIR/.gitignore" <<'GITIGNORE'
 /incoming/
 /incoming-docs/
 /backup-*/
+/reports/
 /.swap-in-progress
 /.restore-tmp
 GITIGNORE

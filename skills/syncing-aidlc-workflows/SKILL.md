@@ -99,11 +99,26 @@ bash "${SKILL}/lib/aidlc_status.sh" --project-root "${PROJECT}"
 
 ### B. 差分 update（diff → merge → 衝突解決 → finalize）
 
-1. **上流差分を見せる。** 何が変わるかを先に提示する:
+1. **上流差分を見せる。** まず端末で件数と差分を素早く確認する:
    ```bash
    bash "${SKILL}/lib/aidlc_diff.sh" --project-root "${PROJECT}"
    ```
    `上流に変更はありません` なら最新。ここで終了。
+
+   続けて、利用者がブラウザで**パッと確認できるサイドバイサイドの HTML レポート**を生成する
+   （端末の unified diff は読解負荷が高いため、グラフィカルな確認手段を用意する）:
+   ```bash
+   bash "${SKILL}/lib/aidlc_report.sh" --project-root "${PROJECT}"
+   # → .aidlc-sync/reports/aidlc-report-<時刻>.html を生成（差分が無ければ生成しない）
+   ```
+   レポートのうち **サイドバイサイド diff・統計・コミットログはスクリプトが忠実に生成**する。
+   一方 **「まとめ」「変更で何が起き挙動がどう変わるか」の2枠は空のプレースホルダ**で出力されるので、
+   **Claude が解説で埋める**（これがレポートの主目的）:
+   - HTML を `Read` し、`<!-- AIDLC:SUMMARY:START -->`〜`:END` を「今回の更新のまとめ（2〜4行）」に、
+     `<!-- AIDLC:IMPACT:START -->`〜`:END` を「変更で何が起き挙動がどう変わるか（主要ファイル別の箇条書き）」に
+     `Edit` で置換する。観点・書き方は [references/report-guide.md](references/report-guide.md) に従う。
+   - merge 後に生成した場合は `manifest.pendingUpdate.conflicts` を踏まえ、衝突点と必要な手当も IMPACT 枠に明記する。
+   - 完了後、レポートのパスを伝えブラウザで開くよう案内する。
 
 2. **dirty を解消させる。** ターゲットが git 管理下なら、`<installPath>`（例 `.kiro` / `.claude`）や
    `.aidlc-sync` に未コミット変更があると merge は停止する。コミットか stash を促す（ロールバックの
@@ -163,7 +178,8 @@ docs の md は `docs/...` のパスで出る。**ここに出た md は 1 つ�
 | `aidlc_common.sh` | 共通ライブラリ（source 専用。単体実行しない） |
 | `aidlc_fetch.sh` | 上流取得の薄い CLI（通常は import/merge が内部で取得するため直接は使わない） |
 | `aidlc_import.sh` | 初回 import |
-| `aidlc_diff.sh` | 上流差分（前回取り込み版 → 新版）の提示 |
+| `aidlc_diff.sh` | 上流差分（前回取り込み版 → 新版）の端末提示 |
+| `aidlc_report.sh` | 上流差分のサイドバイサイド HTML レポート生成（解説枠は Claude が記入） |
 | `aidlc_merge.sh` | update①: 3-way マージ / `--dry-run` / `--abort` |
 | `aidlc_finalize.sh` | update②: 確定（マーカー検証 → base 入替 → manifest 更新） |
 | `aidlc_status.sh` | 状況診断 / `--local-changes` / `--translation-todo` / `--mark-translated` |
@@ -174,4 +190,5 @@ docs の md は `docs/...` のパスで出る。**ここに出た md は 1 つ�
 - [references/manifest-schema.md](references/manifest-schema.md) — `manifest.json` のスキーマ
 - [references/conflict-resolution.md](references/conflict-resolution.md) — 衝突マーカーの読み方と解消手順
 - [references/translation-guide.md](references/translation-guide.md) — 日本語訳の方針・用語統一
+- [references/report-guide.md](references/report-guide.md) — HTML レポートの解説枠（まとめ/挙動）の書き方
 - [references/troubleshooting.md](references/troubleshooting.md) — 失敗モードと復旧手順

@@ -50,6 +50,23 @@
         "AGENTS.md は取り込まれていない（正規化で除去されるため）",
         "import 前から存在したプロジェクトの他ファイルや .git が消えていない"
       ]
+    },
+    {
+      "id": 3,
+      "name": "update-html-report",
+      "prompt": "aidlc workflow の Claude Code 版を、少し前（10コミットほど前）のバージョンで取り込んで。そのうえで、最新版との差分をサイドバイサイドで一目で分かる HTML レポートにまとめて見せて。何がどう変わって挙動がどうなるのかの解説も付けて。",
+      "expected_output": "tool=claude を古いコミット（--commit で 10 コミットほど前を指定）で import 後、aidlc_report.sh で上流最新との差分 HTML レポートを .aidlc-sync/reports/ に生成。サイドバイサイド diff・統計・コミットログはスクリプトが生成し、HTML 内の AIDLC:SUMMARY / AIDLC:IMPACT プレースホルダ枠を Claude が解説（まとめ・挙動の変化）で埋める。docs は件数のみで diff 本体には含めない。",
+      "files": [],
+      "assertions": [
+        ".aidlc-sync/manifest.json が生成され、importedCommit が上流最新ではない（古いコミットで取り込んでいる）",
+        ".aidlc-sync/reports/ に aidlc-report-*.html が生成されている",
+        "HTML に class=\"diff\" のサイドバイサイド diff テーブルが含まれる（前回取込 / 上流新版 の2カラム）",
+        "HTML に追加/変更/削除の件数チップ（class=\"chip\"）が含まれる",
+        "HTML に <!-- AIDLC:SUMMARY:START --> と <!-- AIDLC:IMPACT:START --> のマーカーが存在する",
+        "SUMMARY 枠・IMPACT 枠が初期プレースホルダ文言（『この枠は Claude が記入します』）のままではなく、実際の解説に置換されている",
+        "diff 本体のファイルブロックに docs/ 配下の md が混入していない（docs は翻訳のみ・マージ非対象でヘッダ件数のみ）",
+        "HTML 内でファイル内容が HTML エスケープされている（生の < > & がそのまま埋め込まれていない）"
+      ]
     }
   ]
 }

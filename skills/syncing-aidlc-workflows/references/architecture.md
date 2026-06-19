@@ -40,6 +40,7 @@ ${PROJECT}/
     ├── reference-ja/         # 取り込んだ Markdown の日本語訳（参考物・マージ対象外。docs/ も含む）
     ├── incoming/             # update 確定待ちの新上流 dist（finalize で base になる・一時）
     ├── incoming-docs/        # update 確定待ちの新上流 docs（finalize で base/docs になる・一時）
+    ├── reports/              # 差分の HTML レポート（再生成可能な成果物・git 管理対象外）
     └── backup-<ts>/          # merge 直前の install 退避（abort 用・一時。project-root 相対構造で保存）
 ```
 
@@ -121,3 +122,19 @@ merge は新上流を `incoming/` に丸ごと保存しておき、finalize は�
 
 翻訳をスクリプト化しないのは、良い訳は文脈依存の判断であり、決定論的処理に馴染まないため。
 代わりにスクリプトは「どの md がいつ翻訳対象か」を `translatedSha256` で機械的に管理し、Claude に渡す。
+
+## 差分の HTML レポート（reports/）
+
+端末の unified diff は人間の読解負荷が高いため、`aidlc_report.sh` が上流差分（base ↔ 新上流）を
+**サイドバイサイドの自己完結 HTML**（`.aidlc-sync/reports/`）に書き出す。ここでも役割分担は翻訳と同じ
+原則に従う:
+
+- **スクリプト（決定論・忠実）**: サイドバイサイド diff 本体・統計・コミットログ。diff は `git diff
+  --no-index` の unified 出力を awk で2カラムに整形して生成し、忠実な再現を保証する（AI に diff を
+  再生成させると行の取りこぼし・捏造のリスクがあり、確認手段としての価値が損なわれる）。
+- **Claude（解釈）**: 「まとめ」「変更で何が起き挙動がどう変わるか」の2枠。HTML 内に `<!-- AIDLC:… -->`
+  マーカーで囲った空のプレースホルダとして出力され、Claude が解説で埋める（[report-guide.md](report-guide.md)）。
+
+レポートは再生成可能な成果物なので git 管理対象外（import が `.aidlc-sync/.gitignore` に `/reports/` を
+登録する）。docs の差分は件数のみヘッダに出し、diff 本体には含めない（docs は翻訳のみ・マージ非対象で、
+install 資産の分類からは `docs/` サブツリーを除外する）。
