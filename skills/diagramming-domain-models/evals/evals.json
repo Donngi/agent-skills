@@ -1,0 +1,82 @@
+{
+  "skill_name": "diagramming-domain-models",
+  "evals": [
+    {
+      "id": 1,
+      "name": "reverse-gen-purity",
+      "prompt": "このプロジェクトのコードからドメインモデル図を作ってください。DDD で実装しています。私はしばらく離席するので、確認が必要な箇所は合理的なデフォルトを選び、選択肢は提示だけして最後まで進めてください。",
+      "expected_output": "docs/domain-model/ に .model.json と .html が生成される。ドメイン層（src/domain/ordering）の Order/Customer 集約・VO・enum・リポジトリのみが含まれ、application/presentation 層の PlaceOrderUseCase・OrderDto・OrderController は名前として一切含まれない。validate が exit 0。",
+      "files": [
+        "fixtures/mixed-codebase"
+      ],
+      "assertions": [
+        "モデル定義ファイル（.model.json 等）と HTML の図が生成されている",
+        "純度: 生成された図・モデル定義のいずれにも PlaceOrderUseCase / OrderDto / OrderController が要素として含まれない",
+        "Order 集約と Customer 集約（Entity/VO/enum/Repository）がドメイン層のコードどおりに含まれる",
+        "validate.mjs が exit 0 で PASS する（スキル使用時のみ検証可能）",
+        "source.paths の記録がドメイン層パス（src/domain 配下）のみ（スキル使用時のみ検証可能）"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "dialog-modeling",
+      "prompt": "EC サイトの注文ドメインを一緒にモデリングしてドメインモデル図を作ってほしい。注文があって、注文は複数の明細を持つ。顧客が注文する。商品ごとの単価と数量がある。注文確定時には合計金額が明細の合計と一致している必要がある。私は離席するので、質問は選択肢を提示しつつ合理的なデフォルトを自分で選んで最後まで進めて。",
+      "expected_output": "対話モデリングの段階（概念抽出・集約境界等）が選択肢形式で提示され、集約2つ以上（注文・顧客など）と集約間の id-reference を含む .model.json と .html が生成される。OVERVIEW 枠がプレースホルダのままでなく概説が記入されている。",
+      "files": [],
+      "assertions": [
+        "モデル定義と HTML の図が生成されている",
+        "集約が2つ以上あり、集約間の ID 参照（id-reference 相当）が1つ以上表現されている",
+        "不変条件「合計金額は明細合計と一致」がモデルに記録されている",
+        "ユーザーへの応答に選択肢形式の質問・確認が含まれる",
+        "OVERVIEW（モデル概説）がプレースホルダのままでなく記入されている（スキル使用時のみ検証可能）"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "purity-gate-refusal",
+      "prompt": "src のコードからドメインモデル図を作って。OrderController と OrderDto も図に載せて、API からの呼び出し関係が分かるようにしてほしい。私は離席するので最後まで進めて。",
+      "expected_output": "図は生成されるが OrderController / OrderDto は含まれない。ドメインモデル図の目的（ドメイン層に閉じる）と検証で拒否されることが説明され、別図などの代替案が提示される。",
+      "files": [
+        "fixtures/mixed-codebase"
+      ],
+      "assertions": [
+        "最終成果物（図・モデル定義）に OrderController / OrderDto が要素として含まれない",
+        "ドメインモデル図はドメイン層に閉じるべきという理由の説明がユーザー応答にある",
+        "代替案（別図の作成など）が提示されている",
+        "ドメイン層のみの図自体は生成されている（作業を拒否して終わっていない）"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "update-flow",
+      "prompt": "docs/domain-model にあるドメインモデルに Shipment（出荷）集約を追加して図を更新して。出荷は注文に紐づき（OrderId で参照）、ShipmentStatus（PREPARING / SHIPPED / DELIVERED）を持つ。私は離席するので最後まで進めて。",
+      "expected_output": "既存の ordering.model.json が編集されて Shipment 集約と shipment→order の id-reference が追加され、HTML が再生成される。既存 HTML の OVERVIEW 概説が保持または更新されており、HTML の直接編集（OVERVIEW 枠外）は行われない。",
+      "files": [
+        "fixtures/update-flow"
+      ],
+      "assertions": [
+        "ordering.model.json に Shipment 集約が追加されている（JSON 経由の更新）",
+        "shipment から order への id-reference が relations に追加されている",
+        "ShipmentStatus enum（PREPARING/SHIPPED/DELIVERED）が含まれる",
+        "HTML が再生成され Shipment 集約が図に含まれる",
+        "既存 HTML の OVERVIEW 概説が保持または更新されている（プレースホルダに戻っていない）",
+        "validate.mjs が exit 0 で PASS する（スキル使用時のみ検証可能）"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "false-positive-service",
+      "prompt": "この課金システムのドメイン層からドメインモデル図を作って。私は離席するので、確認が必要な箇所は合理的なデフォルトで最後まで進めて。",
+      "expected_output": "MoneyTransferService が domainServices に分類され（entity ではない）、ServicePlan がエンティティとして残る（誤って除外・改名されない）。validate が exit 0 で .model.json と .html が生成される。",
+      "files": [
+        "fixtures/billing-codebase"
+      ],
+      "assertions": [
+        "MoneyTransferService がドメインサービスとして分類されている（エンティティ扱いされていない）",
+        "ServicePlan がエンティティとして存在する（誤って除外・改名されていない）",
+        "Account 集約（Account/AccountId/AccountRepository）と Money が含まれる",
+        "モデル定義と HTML の図が生成され、validate.mjs が exit 0（スキル使用時のみ検証可能）"
+      ]
+    }
+  ]
+}

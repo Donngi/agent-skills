@@ -1,0 +1,164 @@
+{
+  "version": 1,
+  "boundedContext": {
+    "name": "Ordering",
+    "description": "注文の受付・確定・キャンセルを扱う境界づけられたコンテキスト"
+  },
+  "source": {
+    "mode": "code",
+    "paths": ["src/domain/ordering"]
+  },
+  "aggregates": [
+    {
+      "id": "order",
+      "name": "Order",
+      "description": "注文集約。明細合計と請求金額の一致を保証する",
+      "rootEntity": "Order",
+      "entities": [
+        {
+          "id": "Order",
+          "name": "Order",
+          "description": "注文。DRAFT→PLACED→SHIPPED のライフサイクルを持つ",
+          "properties": [
+            { "name": "id", "type": "OrderId" },
+            {
+              "name": "customerId",
+              "type": "CustomerId",
+              "description": "Customer 集約への ID 参照（オブジェクト参照は持たない）"
+            },
+            { "name": "lines", "type": "OrderLine[]" },
+            { "name": "status", "type": "OrderStatus" },
+            { "name": "totalAmount", "type": "Money" }
+          ],
+          "invariants": [
+            "totalAmount は全 OrderLine 小計の合計と常に一致する",
+            "PLACED 以降は明細を変更できない"
+          ]
+        },
+        {
+          "id": "OrderLine",
+          "name": "OrderLine",
+          "description": "注文明細。集約内でのみ識別されるローカルエンティティ",
+          "properties": [
+            { "name": "lineNo", "type": "int" },
+            { "name": "productId", "type": "ProductId" },
+            { "name": "quantity", "type": "Quantity" },
+            { "name": "unitPrice", "type": "Money" }
+          ]
+        }
+      ],
+      "valueObjects": [
+        {
+          "id": "OrderId",
+          "name": "OrderId",
+          "properties": [{ "name": "value", "type": "string" }]
+        },
+        {
+          "id": "Quantity",
+          "name": "Quantity",
+          "properties": [{ "name": "value", "type": "int" }],
+          "invariants": ["1 以上 999 以下"]
+        },
+        {
+          "id": "ProductId",
+          "name": "ProductId",
+          "description": "商品カタログ（別コンテキスト）の商品を指す識別子",
+          "properties": [{ "name": "value", "type": "string" }]
+        }
+      ],
+      "enums": [
+        {
+          "id": "OrderStatus",
+          "name": "OrderStatus",
+          "values": ["DRAFT", "PLACED", "SHIPPED", "CANCELLED"]
+        }
+      ],
+      "repository": {
+        "name": "OrderRepository",
+        "description": "OrderId による復元と保存"
+      }
+    },
+    {
+      "id": "customer",
+      "name": "Customer",
+      "description": "顧客集約",
+      "rootEntity": "Customer",
+      "entities": [
+        {
+          "id": "Customer",
+          "name": "Customer",
+          "properties": [
+            { "name": "id", "type": "CustomerId" },
+            { "name": "name", "type": "CustomerName" },
+            { "name": "grade", "type": "CustomerGrade" },
+            { "name": "creditLimit", "type": "Money" }
+          ]
+        }
+      ],
+      "valueObjects": [
+        {
+          "id": "CustomerId",
+          "name": "CustomerId",
+          "properties": [{ "name": "value", "type": "string" }]
+        },
+        {
+          "id": "CustomerName",
+          "name": "CustomerName",
+          "properties": [{ "name": "value", "type": "string" }]
+        }
+      ],
+      "enums": [
+        {
+          "id": "CustomerGrade",
+          "name": "CustomerGrade",
+          "values": ["REGULAR", "GOLD"]
+        }
+      ],
+      "repository": {
+        "name": "CustomerRepository"
+      }
+    }
+  ],
+  "sharedValueObjects": [
+    {
+      "id": "Money",
+      "name": "Money",
+      "description": "通貨付き金額。複数の集約から使われる共有語彙",
+      "properties": [
+        { "name": "amount", "type": "decimal" },
+        { "name": "currency", "type": "string" }
+      ],
+      "invariants": ["amount は 0 以上"]
+    }
+  ],
+  "domainServices": [
+    {
+      "id": "OrderPricingService",
+      "name": "OrderPricingService",
+      "description": "顧客グレードに応じた注文金額の算定。単一集約に閉じない計算のためドメインサービスとする",
+      "relatedAggregates": ["order", "customer"]
+    }
+  ],
+  "domainEvents": [
+    {
+      "id": "OrderPlaced",
+      "name": "OrderPlaced",
+      "description": "注文が確定した",
+      "sourceAggregate": "order",
+      "properties": [
+        { "name": "orderId", "type": "OrderId" },
+        { "name": "placedAt", "type": "datetime" }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "from": "order",
+      "to": "customer",
+      "type": "id-reference",
+      "via": "customerId",
+      "description": "注文は顧客を ID でのみ参照する（オブジェクト参照を持たない）"
+    }
+  ],
+  "purityExceptions": []
+}

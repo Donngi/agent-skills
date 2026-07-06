@@ -71,6 +71,16 @@ AWSの`aidlc-workflows`（AI-DLCワークフロー, `awslabs/aidlc-workflows`の
   - `aidlc-common/**/*.js`内のハードコード`.kiro`パスを`.claude`へ書換え
 - 冪等で再実行可能（上流更新後は再実行するだけで`.claude/`が追従、settings.jsonのフックは重複しない）
 
+### diagramming-domain-models
+
+DDDのドメインモデル図（エンティティ・バリューオブジェクト・集約境界・リポジトリの関係図）を自己完結HTMLとして生成するスキル。
+
+- 中間JSON（唯一の情報源）→ 機械検証 → 決定論的レンダリングの3層構成。モデル変更はJSON編集で行い、HTMLは常に再生成
+- **ドメイン層に閉じたピュアな図を機械的に保証**: スキーマのキー白リストと禁止語彙チェック（UseCase/Controller/DTO等をERROR）で非ドメイン要素の混入を構造的に拒否
+- 既存コードのドメイン層からの逆生成と、対話によるゼロからのモデリングの両方に対応
+- 生成HTMLはCSS/JS同梱・外部依存ゼロ。フォーカスモード・集約の折りたたみ・詳細度切替・ライト/ダークテーマ・型名クリックジャンプ等のインタラクション付き
+- 必要環境: Node.js 18+（npm依存なし）
+
 ## リポジトリ構成
 
 - `skills/<skill-name>/` … スキル本体（`SKILL.md`・`lib`/`scripts`・`references`・テスト定義 `evals/`）。git 管理対象。

@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ordering — ドメインモデル図</title>
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --text:#1f2530; --muted:#68738a; --border:#d9dee8;
+  --agg-border:#aab4c5; --agg-head:#eef1f6;
+  --entity:#6e97e8; --entity-bg:#f0f5ff;
+  --root:#1d4fd0;   --root-bg:#e2ecff;
+  --vo:#178a50;     --vo-bg:#eaf7f0;
+  --enum:#7a3fbf;   --enum-bg:#f4edfc;
+  --repo:#5b6b84;   --repo-bg:#eef1f6;
+  --event:#c2571c;  --event-bg:#fdf0e6;
+  --svc:#0e7f8a;    --svc-bg:#e6f6f8;
+  --shared:#8a6d1f; --shared-bg:#faf5e6;
+  --line-ref:#8c96aa; --line-rel:#c08a00; --line-svc:#0e7f8a;
+  --hl:#ffd166; --hl-bg:#fff3d1;
+  --shadow:0 1px 3px rgba(15,23,42,.07);
+  --sp-card:12px; --sp-col:18px; --sp-aggx:40px; --sp-aggy:44px;
+  --card-pad:8px 10px; --body-pad:14px 12px; --sp-band:32px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#12151c; --panel:#1a1f2a; --text:#e6e9f0; --muted:#95a0b4; --border:#2b3242;
+    --agg-border:#414b60; --agg-head:#222938;
+    --entity:#7291d4; --entity-bg:#1c2536;
+    --root:#a8c2ff;   --root-bg:#24344f;
+    --vo:#4ecb8d;     --vo-bg:#122e1f;
+    --enum:#bb90ee;   --enum-bg:#2a1e3c;
+    --repo:#93a2bc;   --repo-bg:#232a38;
+    --event:#ea8443;  --event-bg:#372010;
+    --svc:#45c3d1;    --svc-bg:#0f2e33;
+    --shared:#d9b95c; --shared-bg:#2b2510;
+    --line-ref:#6b7690; --line-rel:#e2b54e; --line-svc:#45c3d1;
+    --hl:#ffd166; --hl-bg:#3d3313;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f6f9; --panel:#ffffff; --text:#1f2530; --muted:#68738a; --border:#d9dee8;
+  --agg-border:#aab4c5; --agg-head:#eef1f6;
+  --entity:#6e97e8; --entity-bg:#f0f5ff;
+  --root:#1d4fd0;   --root-bg:#e2ecff;
+  --vo:#178a50;     --vo-bg:#eaf7f0;
+  --enum:#7a3fbf;   --enum-bg:#f4edfc;
+  --repo:#5b6b84;   --repo-bg:#eef1f6;
+  --event:#c2571c;  --event-bg:#fdf0e6;
+  --svc:#0e7f8a;    --svc-bg:#e6f6f8;
+  --shared:#8a6d1f; --shared-bg:#faf5e6;
+  --line-ref:#8c96aa; --line-rel:#c08a00; --line-svc:#0e7f8a;
+  --hl:#ffd166; --hl-bg:#fff3d1;
+  --shadow:0 1px 3px rgba(15,23,42,.07);
+}
+:root[data-theme="dark"]{
+  --bg:#12151c; --panel:#1a1f2a; --text:#e6e9f0; --muted:#95a0b4; --border:#2b3242;
+  --agg-border:#414b60; --agg-head:#222938;
+  --entity:#7291d4; --entity-bg:#1c2536;
+  --root:#a8c2ff;   --root-bg:#24344f;
+  --vo:#4ecb8d;     --vo-bg:#122e1f;
+  --enum:#bb90ee;   --enum-bg:#2a1e3c;
+  --repo:#93a2bc;   --repo-bg:#232a38;
+  --event:#ea8443;  --event-bg:#372010;
+  --svc:#45c3d1;    --svc-bg:#0f2e33;
+  --shared:#d9b95c; --shared-bg:#2b2510;
+  --line-ref:#6b7690; --line-rel:#e2b54e; --line-svc:#45c3d1;
+  --hl:#ffd166; --hl-bg:#3d3313;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",sans-serif;
+  font-size:13px;line-height:1.5}
+main{max-width:1320px;margin:0 auto;padding:24px 22px 80px}
+h1{font-size:20px;margin:0 0 2px}
+h1 .ctx{font-size:11px;font-weight:normal;color:var(--muted);margin-left:8px;letter-spacing:.04em}
+.subtitle{color:var(--muted);margin:0 0 10px;font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.chip{background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:2px 10px;font-size:11px;color:var(--muted)}
+.chip b{color:var(--text)}
+.controls{position:sticky;top:0;z-index:50;background:var(--panel);border:1px solid var(--border);
+  border-radius:10px;padding:9px 14px;margin-bottom:18px;display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end;
+  box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.controls fieldset{border:none;margin:0;padding:0}
+.controls legend{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.05em;padding:0 0 4px}
+.controls label{margin-right:12px;cursor:pointer;font-size:12px}
+.controls input{accent-color:var(--root);margin-right:4px}
+.controls button{border:1px solid var(--border);background:var(--panel);color:var(--text);
+  border-radius:6px;font-size:11px;padding:3px 10px;cursor:pointer;margin-right:6px}
+.controls button:hover{background:var(--agg-head)}
+.controls .hint{font-size:10px;color:var(--muted);flex-basis:100%}
+.overview{border:1px dashed var(--agg-border);border-radius:10px;background:var(--panel);
+  padding:11px 15px;margin-bottom:16px}
+.overview .tag{font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--muted)}
+.overview p{margin:5px 0 0;font-size:12px}
+.overview .placeholder{color:var(--muted);font-style:italic}
+.legend{display:flex;flex-wrap:wrap;gap:13px;font-size:11px;color:var(--muted);margin-bottom:14px}
+.legend .k{display:inline-flex;align-items:center;gap:5px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
+.canvas{position:relative;padding:8px 4px 4px}
+#overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10}
+.agg-row{display:flex;flex-wrap:wrap;gap:var(--sp-aggy) var(--sp-aggx);align-items:flex-start}
+.aggregate{flex:1 1 350px;max-width:490px;border:2px solid var(--agg-border);border-radius:12px;
+  background:var(--panel);overflow:hidden;box-shadow:var(--shadow)}
+.aggregate,.card.svc,.card.shared-vo{transition:opacity .18s}
+.dimmed{opacity:.14;filter:grayscale(.7)}
+.aggregate.focused{border-color:var(--hl);box-shadow:0 0 0 3px var(--hl-bg),var(--shadow)}
+.agg-head{background:var(--agg-head);padding:9px 14px;border-bottom:1px solid var(--border);
+  cursor:pointer;user-select:none;position:relative;padding-right:44px}
+.agg-head .st{font-size:9px;letter-spacing:.08em;color:var(--muted)}
+.agg-head .nm{font-size:15px;font-weight:700}
+.agg-head .ds{font-size:11px;color:var(--muted);margin-top:1px}
+.collapse-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  border:1px solid var(--border);background:var(--panel);color:var(--muted);
+  border-radius:6px;font-size:11px;line-height:1;padding:4px 8px;cursor:pointer}
+.collapse-btn:hover{color:var(--text)}
+.agg-body{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:var(--sp-card) var(--sp-col);
+  padding:var(--body-pad);overflow:hidden;max-height:3000px;opacity:1;
+  transition:max-height .3s ease,opacity .22s ease,padding .3s ease}
+@media (max-width:760px){ .agg-body{grid-template-columns:1fr} .agg-summary{grid-template-columns:1fr} }
+.col{display:flex;flex-direction:column;gap:var(--sp-card);min-width:0}
+.col-title{font-size:9px;font-weight:700;letter-spacing:.09em;color:var(--muted);margin:-2px 0 -8px 2px}
+.agg-foot{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:2px 14px 14px;
+  overflow:hidden;max-height:400px;opacity:1;
+  transition:max-height .3s ease,opacity .22s ease,padding .3s ease}
+.aggregate.collapsed .agg-body,.aggregate.collapsed .agg-foot{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
+.agg-summary{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:6px 18px;
+  overflow:hidden;max-height:0;opacity:0;padding:0 14px;
+  transition:max-height .3s ease,opacity .22s ease,padding .3s ease}
+.aggregate.collapsed .agg-summary{max-height:400px;opacity:1;padding:9px 14px}
+.aggregate.collapsed{flex:0 1 320px}
+.sum-col{display:flex;flex-wrap:wrap;gap:5px;align-content:flex-start}
+.nchip{font-size:10.5px;font-weight:600;border-radius:5px;padding:1px 8px;border:1px solid var(--border)}
+.nc-root{color:var(--root);background:var(--root-bg);border-color:var(--root)}
+.nc-entity{color:var(--entity);background:var(--entity-bg);border-color:var(--entity)}
+.nc-vo{color:var(--vo);background:var(--vo-bg);border-color:var(--vo)}
+.nc-enum{color:var(--enum);background:var(--enum-bg);border-color:var(--enum)}
+.card{border:1px solid var(--border);border-left:4px solid var(--muted);border-radius:10px;
+  background:var(--bg);padding:var(--card-pad);box-shadow:var(--shadow)}
+.card .st{font-size:9px;letter-spacing:.06em;color:var(--muted)}
+.card .nm{font-weight:700;font-size:13px}
+.card .ds{font-size:10.5px;color:var(--muted);margin-top:1px}
+.card.entity{border-left-color:var(--entity);background:var(--entity-bg)}
+.card.entity .st{color:var(--entity)}
+.card.root{border:2px solid var(--root);border-left-width:5px;background:var(--root-bg)}
+.card.root .st{color:var(--root)}
+.card.vo{border-left-color:var(--vo);background:var(--vo-bg)}
+.card.vo .st{color:var(--vo)}
+.card.enum{border-left-color:var(--enum);background:var(--enum-bg)}
+.card.enum .st{color:var(--enum)}
+.card.repo{border-left-color:var(--repo);background:var(--repo-bg);flex:0 1 230px}
+.card.svc{border-left-color:var(--svc);background:var(--svc-bg);flex:0 1 360px}
+.card.svc .st{color:var(--svc)}
+.card.shared-vo{border-left-color:var(--shared);background:var(--shared-bg);flex:0 1 250px}
+.card.shared-vo .st{color:var(--shared)}
+.props{margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.prop{display:flex;justify-content:space-between;gap:10px;padding:2px 6px;border-radius:5px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px}
+.prop .pn{color:var(--text)}
+.prop .pt{color:var(--muted);text-align:right}
+.prop[data-ref] .pt{cursor:pointer}
+.prop[data-ref] .pt:hover{text-decoration:underline dotted;color:var(--text)}
+.inv{margin:6px 0 0;padding:0;list-style:none}
+.inv li{font-size:10.5px;color:var(--muted);padding:1px 0 1px 15px;position:relative}
+.inv li::before{content:"⚑";position:absolute;left:2px;color:var(--event)}
+.badge{display:inline-block;font-size:9px;font-family:-apple-system,"Hiragino Sans",sans-serif;
+  border:1px solid var(--border);border-radius:999px;padding:0 6px;margin-left:6px;
+  color:var(--muted);background:var(--panel);vertical-align:1px}
+.enum-vals{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.enum-vals span{font-size:10px;font-family:ui-monospace,Menlo,monospace;border:1px solid var(--border);
+  border-radius:4px;padding:1px 6px;background:var(--panel)}
+.event-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;border:1px solid var(--event);
+  color:var(--event);background:var(--event-bg);border-radius:999px;padding:2px 10px;width:fit-content;cursor:default}
+.band{flex-basis:100%;margin-top:var(--sp-band)}
+.band > .band-title{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.band .band-cards{display:flex;flex-wrap:wrap;gap:14px}
+.band.band-shared{border-top:1px dashed var(--agg-border);padding-top:14px}
+.hl{outline:2px solid var(--hl);background:var(--hl-bg) !important;border-radius:6px}
+.card.hl{outline-offset:2px}
+svg.hovering path.refline{opacity:.12}
+svg.hovering path.refline.active{opacity:1}
+@keyframes flash{0%,55%{box-shadow:0 0 0 3px var(--hl)}100%{box-shadow:0 0 0 3px transparent}}
+.flash{animation:flash 1.3s ease}
+#tooltip{position:fixed;z-index:99;display:none;max-width:300px;pointer-events:none;
+  background:var(--panel);border:1px solid var(--border);border-radius:8px;
+  padding:6px 10px;font-size:11px;color:var(--text);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+footer{margin-top:32px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>Ordering <span class="ctx">BOUNDED CONTEXT</span></h1>
+<p class="subtitle">注文の受付・確定・キャンセルを扱う境界づけられたコンテキスト ｜ source: code（src/domain/ordering） ｜ 生成: 2026/7/3 16:37:21</p>
+<div class="chips"><span class="chip">集約 <b>2</b></span><span class="chip">Entity <b>3</b></span><span class="chip">Value Object <b>6</b></span><span class="chip">Enum <b>2</b></span><span class="chip">Repository <b>2</b></span><span class="chip">Domain Service <b>1</b></span><span class="chip">Domain Event <b>1</b></span></div>
+</header>
+
+<div class="controls">
+<fieldset>
+<legend>詳細度</legend>
+<label><input type="radio" name="dt" value="full" checked> フル</label>
+<label><input type="radio" name="dt" value="props"> プロパティまで</label>
+<label><input type="radio" name="dt" value="names"> 名前のみ</label>
+</fieldset>
+<fieldset>
+<legend>表示</legend>
+<button type="button" id="btn-collapse-all">全て折りたたむ</button>
+<button type="button" id="btn-expand-all">全て展開</button>
+<button type="button" id="btn-theme">🌓 テーマ切替</button>
+</fieldset>
+<span class="hint">集約ヘッダーをクリック = フォーカス（関連要素以外を淡色化・再クリックか背景クリックで解除）／ ▾ = 折りたたみ ／ 型名クリック = 定義へジャンプ ／ カードや型名にホバー = 参照を強調 ／ 金色の線にホバー = 参照の説明</span>
+</div>
+
+<div class="overview">
+<span class="tag">OVERVIEW ─ モデル概説</span>
+<!-- DOMAIN-MODEL:OVERVIEW:START -->
+<p>Order と Customer を独立集約とし、ID 参照で結合を断つ設計。（テスト記入）</p>
+<!-- DOMAIN-MODEL:OVERVIEW:END -->
+</div>
+
+<div class="legend">
+<span class="k"><span class="sw" style="background:var(--root)"></span>集約ルート</span>
+<span class="k"><span class="sw" style="background:var(--entity)"></span>エンティティ</span>
+<span class="k"><span class="sw" style="background:var(--vo)"></span>バリューオブジェクト</span>
+<span class="k"><span class="sw" style="background:var(--enum)"></span>列挙型</span>
+<span class="k"><span class="sw" style="background:var(--repo)"></span>リポジトリ</span>
+<span class="k"><span class="sw" style="background:var(--event)"></span>ドメインイベント</span>
+<span class="k"><span class="sw" style="background:var(--svc)"></span>ドメインサービス</span>
+<span class="k"><span class="sw" style="background:var(--line-rel)"></span>集約間 ID 参照</span>
+<span class="k"><span class="sw" style="background:var(--shared)"></span>共有語彙</span>
+</div>
+
+<div class="canvas" id="canvas">
+<svg id="overlay"></svg>
+<div class="agg-row">
+<section class="aggregate" id="agg-order">
+<div class="agg-head" id="agg-head-order">
+<div class="st">«AGGREGATE»</div>
+<div class="nm">Order</div>
+<div class="ds">注文集約。明細合計と請求金額の一致を保証する</div><button type="button" class="collapse-btn" aria-label="折りたたみ">▾</button>
+</div>
+<div class="agg-summary">
+<div class="sum-col"><span class="nchip nc-root">Order</span><span class="nchip nc-entity">OrderLine</span></div>
+<div class="sum-col"><span class="nchip nc-vo">OrderId</span><span class="nchip nc-vo">Quantity</span><span class="nchip nc-vo">ProductId</span><span class="nchip nc-enum">OrderStatus</span></div>
+</div>
+<div class="agg-body">
+<div class="col"><div class="col-title">ENTITIES</div>
+<div class="card entity root" data-def="Order">
+<span class="st">«ENTITY · AGGREGATE ROOT»</span>
+<div class="nm">Order</div>
+<div class="ds">注文。DRAFT→PLACED→SHIPPED のライフサイクルを持つ</div><div class="props"><div class="prop" data-ref="OrderId"><span class="pn">id</span><span class="pt">OrderId</span></div><div class="prop" data-ref="CustomerId" data-rel="0" title="Customer 集約への ID 参照（オブジェクト参照は持たない）"><span class="pn">customerId</span><span class="pt">CustomerId<span class="badge">↗ Customer</span></span></div><div class="prop" data-ref="OrderLine"><span class="pn">lines</span><span class="pt">OrderLine[]</span></div><div class="prop" data-ref="OrderStatus"><span class="pn">status</span><span class="pt">OrderStatus</span></div><div class="prop" data-ref="Money"><span class="pn">totalAmount</span><span class="pt">Money<span class="badge">◇ 共有語彙</span></span></div></div><ul class="inv"><li>totalAmount は全 OrderLine 小計の合計と常に一致する</li><li>PLACED 以降は明細を変更できない</li></ul>
+</div>
+<div class="card entity" data-def="OrderLine">
+<span class="st">«ENTITY»</span>
+<div class="nm">OrderLine</div>
+<div class="ds">注文明細。集約内でのみ識別されるローカルエンティティ</div><div class="props"><div class="prop"><span class="pn">lineNo</span><span class="pt">int</span></div><div class="prop" data-ref="ProductId"><span class="pn">productId</span><span class="pt">ProductId</span></div><div class="prop" data-ref="Quantity"><span class="pn">quantity</span><span class="pt">Quantity</span></div><div class="prop" data-ref="Money"><span class="pn">unitPrice</span><span class="pt">Money<span class="badge">◇ 共有語彙</span></span></div></div>
+</div>
+</div>
+<div class="col"><div class="col-title">VALUE OBJECTS / ENUMS</div>
+<div class="card vo" data-def="OrderId">
+<span class="st">«VALUE OBJECT»</span>
+<div class="nm">OrderId</div>
+<div class="props"><div class="prop"><span class="pn">value</span><span class="pt">string</span></div></div>
+</div>
+<div class="card vo" data-def="Quantity">
+<span class="st">«VALUE OBJECT»</span>
+<div class="nm">Quantity</div>
+<div class="props"><div class="prop"><span class="pn">value</span><span class="pt">int</span></div></div><ul class="inv"><li>1 以上 999 以下</li></ul>
+</div>
+<div class="card vo" data-def="ProductId">
+<span class="st">«VALUE OBJECT»</span>
+<div class="nm">ProductId</div>
+<div class="ds">商品カタログ（別コンテキスト）の商品を指す識別子</div><div class="props"><div class="prop"><span class="pn">value</span><span class="pt">string</span></div></div>
+</div>
+<div class="card enum" data-def="OrderStatus">
+<span class="st">«ENUM»</span>
+<div class="nm">OrderStatus</div>
+<div class="enum-vals"><span>DRAFT</span><span>PLACED</span><span>SHIPPED</span><span>CANCELLED</span></div>
+</div>
+</div>
+</div>
+<div class="agg-foot">
+<div class="card repo">
+<span class="st">«REPOSITORY»</span>
+<div class="nm">OrderRepository</div>
+<div class="ds">OrderId による復元と保存</div><div class="props"><div class="prop" data-ref="Order"><span class="pn">manages</span><span class="pt">Order</span></div></div>
+</div>
+<span class="event-chip" title="注文が確定した / payload: { orderId: OrderId, placedAt: datetime }">⚡ OrderPlaced</span>
+</div>
+</section>
+<section class="aggregate" id="agg-customer">
+<div class="agg-head" id="agg-head-customer">
+<div class="st">«AGGREGATE»</div>
+<div class="nm">Customer</div>
+<div class="ds">顧客集約</div><button type="button" class="collapse-btn" aria-label="折りたたみ">▾</button>
+</div>
+<div class="agg-summary">
+<div class="sum-col"><span class="nchip nc-root">Customer</span></div>
+<div class="sum-col"><span class="nchip nc-vo">CustomerId</span><span class="nchip nc-vo">CustomerName</span><span class="nchip nc-enum">CustomerGrade</span></div>
+</div>
+<div class="agg-body">
+<div class="col"><div class="col-title">ENTITIES</div>
+<div class="card entity root" data-def="Customer">
+<span class="st">«ENTITY · AGGREGATE ROOT»</span>
+<div class="nm">Customer</div>
+<div class="props"><div class="prop" data-ref="CustomerId"><span class="pn">id</span><span class="pt">CustomerId</span></div><div class="prop" data-ref="CustomerName"><span class="pn">name</span><span class="pt">CustomerName</span></div><div class="prop" data-ref="CustomerGrade"><span class="pn">grade</span><span class="pt">CustomerGrade</span></div><div class="prop" data-ref="Money"><span class="pn">creditLimit</span><span class="pt">Money<span class="badge">◇ 共有語彙</span></span></div></div>
+</div>
+</div>
+<div class="col"><div class="col-title">VALUE OBJECTS / ENUMS</div>
+<div class="card vo" data-def="CustomerId">
+<span class="st">«VALUE OBJECT»</span>
+<div class="nm">CustomerId</div>
+<div class="props"><div class="prop"><span class="pn">value</span><span class="pt">string</span></div></div>
+</div>
+<div class="card vo" data-def="CustomerName">
+<span class="st">«VALUE OBJECT»</span>
+<div class="nm">CustomerName</div>
+<div class="props"><div class="prop"><span class="pn">value</span><span class="pt">string</span></div></div>
+</div>
+<div class="card enum" data-def="CustomerGrade">
+<span class="st">«ENUM»</span>
+<div class="nm">CustomerGrade</div>
+<div class="enum-vals"><span>REGULAR</span><span>GOLD</span></div>
+</div>
+</div>
+</div>
+<div class="agg-foot">
+<div class="card repo">
+<span class="st">«REPOSITORY»</span>
+<div class="nm">CustomerRepository</div>
+<div class="props"><div class="prop" data-ref="Customer"><span class="pn">manages</span><span class="pt">Customer</span></div></div>
+</div>
+
+</div>
+</section>
+<div class="band"><div class="band-title">DOMAIN SERVICES</div><div class="band-cards">
+<div class="card svc" id="svc-OrderPricingService" data-def="OrderPricingService">
+<span class="st">«DOMAIN SERVICE»</span>
+<div class="nm">OrderPricingService</div>
+<div class="ds">顧客グレードに応じた注文金額の算定。単一集約に閉じない計算のためドメインサービスとする</div><div class="props"><div class="prop"><span class="pn">関連集約</span><span class="pt">Order, Customer</span></div></div>
+</div>
+</div></div>
+<div class="band band-shared"><div class="band-title">SHARED VALUE OBJECTS ─ 集約を跨いで使われる共有語彙</div><div class="band-cards">
+<div class="card shared-vo" id="shared-Money" data-def="Money">
+<span class="st">«VALUE OBJECT · SHARED»</span>
+<div class="nm">Money</div>
+<div class="ds">通貨付き金額。複数の集約から使われる共有語彙</div><div class="props"><div class="prop"><span class="pn">amount</span><span class="pt">decimal</span></div><div class="prop"><span class="pn">currency</span><span class="pt">string</span></div></div><ul class="inv"><li>amount は 0 以上</li></ul>
+</div>
+</div></div>
+</div>
+</div>
+
+<footer>
+このファイルは diagramming-domain-models スキルが <code>ordering.model.json</code> から生成した図です。
+モデルの変更は JSON を編集して再レンダリングしてください（HTML の直接編集は OVERVIEW 枠のみ）。
+</footer>
+</main>
+<script type="application/json" id="model-data">{"relations":[{"i":0,"from":"agg-order","to":"agg-customer","via":"customerId","label":"customerId（ID 参照）","tip":"Order → Customer（via: customerId） — 注文は顧客を ID でのみ参照する（オブジェクト参照を持たない）"}],"svcLinks":[{"svc":"svc-OrderPricingService","aggs":["agg-order","agg-customer"]}],"related":{"agg-order":["agg-order","agg-customer","svc-OrderPricingService","shared-Money"],"agg-customer":["agg-customer","agg-order","svc-OrderPricingService","shared-Money"]}}</script>
+<script>
+(function(){
+  var NS = 'http://www.w3.org/2000/svg';
+  var canvas = document.getElementById('canvas');
+  var svg = document.getElementById('overlay');
+  var DATA = JSON.parse(document.getElementById('model-data').textContent);
+
+  function $all(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
+  /* 属性セレクタ用エスケープ（id に引用符等が含まれてもセレクタを壊さない） */
+  function q(s){ return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
+  function visible(el){
+    if (!el || el.offsetParent === null) return false;
+    if (el.closest && el.closest('.aggregate.collapsed') &&
+        (el.closest('.agg-body') || el.closest('.agg-foot'))) return false;
+    return true;
+  }
+  function findDef(name){
+    return $all('[data-def="' + q(name) + '"]').filter(visible)[0] || null;
+  }
+  function cssVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function isDim(el){ return !!(el && el.closest && el.closest('.dimmed')); }
+
+  /* ---- フォーカスモード ---- */
+  var focusedId = null;
+  function applyFocus(){
+    var keep = focusedId ? (DATA.related[focusedId] || [focusedId]) : null;
+    $all('.aggregate, .card.svc, .card.shared-vo').forEach(function(el){
+      var ok = !keep || keep.indexOf(el.id) !== -1;
+      el.classList.toggle('dimmed', !ok);
+      el.classList.toggle('focused', el.id === focusedId);
+    });
+  }
+  $all('.aggregate .agg-head').forEach(function(head){
+    head.addEventListener('click', function(e){
+      if (e.target.closest('.collapse-btn')) return;
+      e.stopPropagation();
+      var agg = head.closest('.aggregate');
+      focusedId = (focusedId === agg.id) ? null : agg.id;
+      applyFocus(); relayout();
+    });
+  });
+  document.addEventListener('click', function(e){
+    if (e.target.closest('.aggregate, .controls, .card')) return;
+    if (focusedId){ focusedId = null; applyFocus(); relayout(); }
+  });
+
+  /* ---- 集約の折りたたみ ---- */
+  $all('.collapse-btn').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var agg = btn.closest('.aggregate');
+      agg.classList.toggle('collapsed');
+      btn.textContent = agg.classList.contains('collapsed') ? '\u25B8' : '\u25BE';
+      relayout();
+    });
+  });
+  function setAllCollapsed(state){
+    $all('.aggregate').forEach(function(agg){
+      agg.classList.toggle('collapsed', state);
+      var btn = agg.querySelector('.collapse-btn');
+      if (btn) btn.textContent = state ? '\u25B8' : '\u25BE';
+    });
+    relayout();
+  }
+  document.getElementById('btn-collapse-all').addEventListener('click', function(){ setAllCollapsed(true); });
+  document.getElementById('btn-expand-all').addEventListener('click', function(){ setAllCollapsed(false); });
+  document.addEventListener('transitionend', function(e){
+    var c = e.target.classList;
+    if (c && (c.contains('agg-body') || c.contains('agg-foot') || c.contains('agg-summary'))) relayout();
+  });
+
+  /* ---- 詳細度トグル ---- */
+  $all('.controls input[name="dt"]').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.body.classList.remove('dt-full','dt-props','dt-names');
+      if (r.value !== 'full') document.body.classList.add('dt-' + r.value);
+      relayout();
+    });
+  });
+
+  /* ---- テーマ切替 ---- */
+  document.getElementById('btn-theme').addEventListener('click', function(){
+    var rootEl = document.documentElement;
+    var cur = rootEl.getAttribute('data-theme');
+    var isDark = cur ? cur === 'dark'
+      : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    rootEl.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    relayout();
+  });
+
+  /* ---- ホバー強調（カード/行 + 参照線） ---- */
+  function clearHl(){
+    $all('.hl').forEach(function(el){ el.classList.remove('hl'); });
+    svg.classList.remove('hovering');
+    $all('path.refline.active', svg).forEach(function(p){ p.classList.remove('active'); });
+  }
+  document.addEventListener('mouseover', function(e){
+    var el = e.target.closest ? e.target.closest('[data-def],[data-ref]') : null;
+    clearHl();
+    if (!el) return;
+    var name = el.getAttribute('data-def') || el.getAttribute('data-ref');
+    $all('[data-def="' + q(name) + '"],[data-ref="' + q(name) + '"]').forEach(function(x){
+      if (visible(x)) x.classList.add('hl');
+    });
+    var lines = $all('path.refline[data-name="' + q(name) + '"]', svg);
+    if (lines.length){
+      svg.classList.add('hovering');
+      lines.forEach(function(p){ p.classList.add('active'); });
+    }
+  });
+
+  /* ---- 型名クリックジャンプ ---- */
+  document.addEventListener('click', function(e){
+    var row = e.target.closest ? e.target.closest('.prop[data-ref]') : null;
+    if (!row) return;
+    var name = row.getAttribute('data-ref');
+    var target = findDef(name) || $all('[data-def="' + q(name) + '"]')[0];
+    if (!target || target.contains(row)) return;
+    var collapsedAgg = target.closest('.aggregate.collapsed');
+    if (collapsedAgg){
+      collapsedAgg.classList.remove('collapsed');
+      var btn = collapsedAgg.querySelector('.collapse-btn');
+      if (btn) btn.textContent = '\u25BE';
+    }
+    setTimeout(function(){
+      relayout();
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.remove('flash');
+      void target.offsetWidth;
+      target.classList.add('flash');
+    }, collapsedAgg ? 330 : 0);
+  });
+
+  /* ---- 座標・描画ユーティリティ ---- */
+  function rectOf(el){
+    var c = canvas.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    return { l: r.left - c.left, t: r.top - c.top, r: r.right - c.left, b: r.bottom - c.top,
+      cx: (r.left + r.right) / 2 - c.left, cy: (r.top + r.bottom) / 2 - c.top };
+  }
+  function addPath(d, color, width, dash, marker, cls, name){
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', color);
+    p.setAttribute('stroke-width', width);
+    if (dash) p.setAttribute('stroke-dasharray', dash);
+    if (marker) p.setAttribute('marker-end', 'url(#' + marker + ')');
+    if (cls) p.setAttribute('class', cls);
+    if (name) p.setAttribute('data-name', name);
+    svg.appendChild(p);
+    return p;
+  }
+  function connect(aEl, bEl, opt){
+    var a = rectOf(aEl), b = rectOf(bEl), x1, y1, x2, y2, d;
+    if (b.l >= a.r + 8){
+      x1 = a.r; y1 = a.cy; x2 = b.l; y2 = b.cy;
+      d = 'M' + x1 + ' ' + y1 + 'C' + (x1 + x2) / 2 + ' ' + y1 + ',' + (x1 + x2) / 2 + ' ' + y2 + ',' + x2 + ' ' + y2;
+    } else if (b.r <= a.l - 8){
+      x1 = a.l; y1 = a.cy; x2 = b.r; y2 = b.cy;
+      d = 'M' + x1 + ' ' + y1 + 'C' + (x1 + x2) / 2 + ' ' + y1 + ',' + (x1 + x2) / 2 + ' ' + y2 + ',' + x2 + ' ' + y2;
+    } else {
+      if (b.cy >= a.cy){ x1 = a.cx; y1 = a.b; x2 = b.cx; y2 = b.t; }
+      else { x1 = a.cx; y1 = a.t; x2 = b.cx; y2 = b.b; }
+      d = 'M' + x1 + ' ' + y1 + 'C' + x1 + ' ' + (y1 + y2) / 2 + ',' + x2 + ' ' + (y1 + y2) / 2 + ',' + x2 + ' ' + y2;
+    }
+    addPath(d, opt.color, opt.width, opt.dash, opt.marker, opt.cls, opt.name);
+    return { mx: (x1 + x2) / 2, my: (y1 + y2) / 2, d: d };
+  }
+  function addLabel(x, y, text, color){
+    var t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y - 6);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('font-size', '10');
+    t.setAttribute('fill', color);
+    t.setAttribute('stroke', cssVar('--bg'));
+    t.setAttribute('stroke-width', '4');
+    t.setAttribute('paint-order', 'stroke');
+    t.textContent = text;
+    svg.appendChild(t);
+  }
+  var tip = document.createElement('div');
+  tip.id = 'tooltip';
+  document.body.appendChild(tip);
+  function addHit(d, text){
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', d);
+    p.setAttribute('fill', 'none');
+    p.setAttribute('stroke', 'rgba(0,0,0,0)');
+    p.setAttribute('stroke-width', '14');
+    p.setAttribute('pointer-events', 'stroke');
+    p.style.cursor = 'help';
+    p.addEventListener('mousemove', function(ev){
+      tip.textContent = text;
+      tip.style.display = 'block';
+      tip.style.left = (ev.clientX + 14) + 'px';
+      tip.style.top = (ev.clientY + 14) + 'px';
+    });
+    p.addEventListener('mouseleave', function(){ tip.style.display = 'none'; });
+    svg.appendChild(p);
+  }
+
+  /* ---- 再描画 ---- */
+  function makeMarker(id, color, size){
+    var m = document.createElementNS(NS, 'marker');
+    m.setAttribute('id', id);
+    m.setAttribute('viewBox', '0 0 10 10');
+    m.setAttribute('refX', '9'); m.setAttribute('refY', '5');
+    m.setAttribute('markerWidth', size); m.setAttribute('markerHeight', size);
+    m.setAttribute('orient', 'auto-start-reverse');
+    var p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', 'M0 0L10 5L0 10z');
+    p.setAttribute('fill', color);
+    m.appendChild(p);
+    return m;
+  }
+  function relayout(){
+    var W = canvas.scrollWidth, H = canvas.scrollHeight;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    var cRef = cssVar('--line-ref'), cRel = cssVar('--line-rel'), cSvc = cssVar('--line-svc');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var defs = document.createElementNS(NS, 'defs');
+    defs.appendChild(makeMarker('arr-ref', cRef, '6.5'));
+    defs.appendChild(makeMarker('arr-rel', cRel, '8'));
+    svg.appendChild(defs);
+
+    /* 1. 集約間 ID 参照 */
+    DATA.relations.forEach(function(rel){
+      var fromAgg = document.getElementById(rel.from);
+      var toAgg = document.getElementById(rel.to);
+      if (!fromAgg || !toAgg || isDim(fromAgg) || isDim(toAgg)) return;
+      var srcRow = document.querySelector('[data-rel="' + rel.i + '"]');
+      var src = (srcRow && visible(srcRow)) ? srcRow : fromAgg;
+      var dstHead = document.getElementById(rel.to.replace('agg-', 'agg-head-'));
+      var dst = (dstHead && visible(dstHead)) ? dstHead : toAgg;
+      var mid = connect(src, dst, { color: cRel, width: 2.2, marker: 'arr-rel' });
+      if (rel.label) addLabel(mid.mx, mid.my, rel.label, cRel);
+      if (rel.tip) addHit(mid.d, rel.tip);
+    });
+
+    /* 2. ドメインサービス → 関連集約（破線） */
+    DATA.svcLinks.forEach(function(link){
+      var svcEl = document.getElementById(link.svc);
+      if (!svcEl || !visible(svcEl) || isDim(svcEl)) return;
+      link.aggs.forEach(function(id){
+        var agg = document.getElementById(id);
+        if (agg && visible(agg) && !isDim(agg)) connect(svcEl, agg, { color: cSvc, width: 1.4, dash: '5 4' });
+      });
+    });
+
+    /* 3. 集約内参照 + 共有語彙帯への参照 */
+    $all('.prop[data-ref]').forEach(function(row){
+      if (!visible(row) || isDim(row)) return;
+      var name = row.getAttribute('data-ref');
+      var target = findDef(name);
+      if (!target || target.contains(row) || isDim(target)) return;
+      var sAgg = row.closest('.aggregate');
+      var tAgg = target.closest('.aggregate');
+      var toShared = !!target.closest('.band-shared');
+      if (!toShared && sAgg !== tAgg) return; /* 集約跨ぎは ID 参照線とバッジで表現 */
+      connect(row, target, { color: cRef, width: 1.2, marker: 'arr-ref', cls: 'refline', name: name });
+    });
+  }
+
+  window.addEventListener('resize', relayout);
+  window.addEventListener('load', relayout);
+  if (window.matchMedia){
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(){ relayout(); });
+  }
+  relayout();
+})();
+</script>
+</body>
+</html>
