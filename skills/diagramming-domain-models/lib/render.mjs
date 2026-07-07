@@ -697,14 +697,20 @@ const JS = `
     $all('.event-chip').forEach(function(chip){ chip.classList.toggle('dimmed', !!lockedCid); });
   }
 
-  /* ---- 集約の折りたたみ ---- */
-  $all('.collapse-btn').forEach(function(btn){
-    btn.addEventListener('click', function(e){
+  /* ---- 集約の折りたたみ（小さなボタンだけでなくヘッダー全体で開閉できる） ---- */
+  function toggleAggregate(agg){
+    if (!agg) return;
+    agg.classList.toggle('collapsed');
+    var btn = agg.querySelector('.collapse-btn');
+    if (btn) btn.textContent = agg.classList.contains('collapsed') ? '\\u25B8' : '\\u25BE';
+    relayout();
+  }
+  /* ヘッダーに載せる（▾ ボタンもヘッダー内なのでボタンのクリックもここで拾える）。
+     stopPropagation でスポットライトの選択解除ハンドラと二重発火しないようにする */
+  $all('.agg-head').forEach(function(head){
+    head.addEventListener('click', function(e){
       e.stopPropagation();
-      var agg = btn.closest('.aggregate');
-      agg.classList.toggle('collapsed');
-      btn.textContent = agg.classList.contains('collapsed') ? '\\u25B8' : '\\u25BE';
-      relayout();
+      toggleAggregate(head.closest('.aggregate'));
     });
   });
   function setAllCollapsed(state){
