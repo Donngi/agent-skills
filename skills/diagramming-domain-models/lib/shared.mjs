@@ -2,7 +2,7 @@
 // スキーマ定数・純度語彙リスト・ユーティリティ。
 // 仕様の正は references/model-schema.md / references/purity-rules.md — 変更時は両者を同期させること。
 
-// ---- スキーマ: キー白リスト（ここにないキーは validate が ERROR にする） ----
+// ---- スキーマ: キーホワイトリスト（ここにないキーは validate が ERROR にする） ----
 
 export const KEY_WHITELIST = {
   top: ['version', 'boundedContext', 'source', 'aggregates', 'sharedValueObjects',

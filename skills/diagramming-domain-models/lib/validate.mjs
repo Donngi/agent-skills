@@ -23,7 +23,7 @@ function pass(check, message) { passes.push({ check, message }); }
 
 function isNonEmptyString(v) { return typeof v === 'string' && v.trim().length > 0; }
 
-// ---- キー白リスト検証 ----
+// ---- キーホワイトリスト検証 ----
 function checkKeys(obj, kind, path, collect, checkId = 'DM-4') {
   const allowed = KEY_WHITELIST[kind];
   for (const key of Object.keys(obj)) {
@@ -71,11 +71,11 @@ try {
   report();
 }
 
-// ---- DM-2: トップレベルキー白リスト ----
+// ---- DM-2: トップレベルキーホワイトリスト ----
 {
   const before = errors.length;
   checkKeys(model, 'top', '$', err, 'DM-2');
-  if (errors.length === before) pass('DM-2', 'トップレベルキーは白リスト内');
+  if (errors.length === before) pass('DM-2', 'トップレベルキーはホワイトリスト内');
 }
 
 // ---- DM-3: 必須フィールド・型 ----
@@ -135,7 +135,7 @@ try {
   if (errors.length === before) pass('DM-3', '必須フィールド・型が妥当');
 }
 
-// ---- DM-4: 各オブジェクトのキー白リスト + 要素レベル必須フィールド ----
+// ---- DM-4: 各オブジェクトのキーホワイトリスト + 要素レベル必須フィールド ----
 {
   const before = errors.length;
   const kindToWhitelistKey = {
@@ -183,7 +183,7 @@ try {
     if (!isNonEmptyString(x.name)) err('DM-3', `${p}.name`, 'purityException.name は必須です');
     if (!isNonEmptyString(x.reason)) err('DM-3', `${p}.reason`, 'purityException.reason は必須です（ユーザー合意の記録）');
   });
-  if (errors.length === before) pass('DM-4', '全要素のキーが白リスト内で必須フィールドも妥当');
+  if (errors.length === before) pass('DM-4', '全要素のキーがホワイトリスト内で必須フィールドも妥当');
 }
 
 // ---- DM-5: id の種別横断一意性 ----
