@@ -26,6 +26,8 @@ AI Agentで利用可能なスキル集です。
 - Conventional Commitsを基本とした規約に従い、適切なtype/scope/subjectを自動生成
 - 複数の論理単位に分割すべき変更は自動判断して複数コミットに分割
 - 変更の背景が不明な場合はユーザーに確認
+- **オーバーレイ対応**: 端末・プロジェクトごとに規約を差分カスタマイズ可能（後述の `.agent-skills/` 規約のリファレンス実装）
+- **フィードバック記録**: 不具合・改善点をローカルファイルに記録（GitHub 未ログイン端末でも失わない）
 
 ### adr
 
@@ -87,6 +89,29 @@ DDDのドメインモデル図（エンティティ・バリューオブジェ�
 - `.skill-workspaces/<skill-name>/` … `skill-creator` による評価・ベンチの実行成果物。再生成可能なため git 管理外（`.gitignore` 済み）。
 
 スキル開発時の evals/workspace の管理方針の詳細は [`CLAUDE.md`](./CLAUDE.md) を参照。
+
+## ローカルカスタマイズとフィードバック（`.agent-skills/`）
+
+スキルは `gh skill install` で各端末に**リードオンリー複製**として配布される（再インストールで上書き）。かつ利用端末は当該 GitHub アカウントに未ログインの場合があり、スキル本体を直接編集して push できない。そこで、スキルが**実行時に読み書きするツール非依存のローカル層** `.agent-skills/` を規約として設ける。
+
+```
+.agent-skills/<skill-name>/            # プロジェクト: <repo root>/ ／ グローバル: $HOME/
+├── <既定ファイル名>.overlay.md         # 予約名。同名の既定 references を「差し替え」（コミット可）
+├── *.overlay.md                       # 予約名以外。必ず「追加」読み込み（コミット可）
+├── .gitignore                         # feedback.md を除外（中身は feedback.md の1行）
+└── feedback.md                        # 不具合・改善点のローカル記録（追記式・コミットしない）
+```
+
+- **`.overlay.md`（プラグイン）**: スキル本体を編集せず、専用拡張子 `.overlay.md` の外部ファイルで挙動を変える。**2系統**ある。
+  - **差し替え**: 予約名 `<既定ファイル名>.overlay.md`（例: 既定 `commit-conventions.md` に対する `commit-conventions.overlay.md`）は、**同名の既定リファレンスファイルの代わりに**読まれる（完全置換）。
+  - **追加**: 予約名以外の `*.overlay.md` は**必ず追加**で読み込まれ、ベースに append される（複数可）。
+  - 優先順位は **プロジェクト（`<repo root>/`） > グローバル（`$HOME/`） > スキル既定**。
+- **feedback.md（イシュー記録）**: 不具合・改善点をその場で記録。GitHub Issue 化はせず、後日ユーザーが手動で回収する。**コミットしない**（各スキルフォルダの `.gitignore` で除外。overlay 系はコミット可能なまま）。
+- スキル別フォルダ（concern 別プールにしない）で**各スキルに自己完結でカプセル化**する方針。overlay/feedback の手順・様式は各スキルの `references/` 内に持つ。
+- `.claude/skills/` 等の再インストールで上書きされる場所の**外**に置くため、カスタマイズ/ログは消えない。
+- `.local/`（再生成キャッシュ）・`.skill-workspaces/`（評価成果物）とは役割が異なる。
+
+現在のリファレンス実装は `commit` スキル（[`skills/commit/references/overlay-guide.md`](./skills/commit/references/overlay-guide.md) ／ [`feedback-schema.md`](./skills/commit/references/feedback-schema.md)）。他スキルへは同じパターンを各スキルの `references/` に複製して順次展開する。
 
 ## インストール方法
 

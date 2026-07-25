@@ -2,6 +2,12 @@
 
 [Conventional Commits](https://www.conventionalcommits.org/ja/v1.0.0/)を基本とした規約。
 
+> **オーバーレイによるカスタマイズ**（2系統）:
+> - **差し替え**: `.agent-skills/commit/commit-conventions.overlay.md` が存在すれば、**本ファイルの代わりに**それが commit rule として読まれる（完全置換）。
+> - **追加**: `commit-conventions.overlay.md` 以外の `*.overlay.md` は必ず追加で読み込まれ、本規約に重ねられる（矛盾時はオーバーレイ優先、プロジェクト > グローバル）。
+>
+> 書き方は [overlay-guide.md](overlay-guide.md) を参照。
+
 ## フォーマット
 
 ```

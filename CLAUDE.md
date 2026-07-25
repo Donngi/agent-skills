@@ -30,3 +30,13 @@ agent-skills/
   - skill-creator のデフォルトはスキルパスの兄弟（`skills/<skill-name>-workspace/`）だが、これは `skills/` 名前空間を汚染するため**使わない**。skill-creator でテスト/ベンチを実行する際は、workspace のルートとして `<repo>/.skill-workspaces/<skill-name>/` を明示的に指定すること。
   - もし `skills/` 配下に `<name>-workspace/` を見つけたら `.skill-workspaces/<name>/` へ移すこと。
 - **git 管理しない**。再生成可能な開発者ローカルの作業物であり、`.gitignore` で `/.skill-workspaces/` を除外済み。
+
+## `.agent-skills/` の位置づけ（混同しないこと）
+
+スキルが実行時に読み書きする**消費側のローカル層**として `.agent-skills/<skill-name>/`（オーバーレイは専用拡張子 `.overlay.md`／フィードバックは `feedback.md`）を規約に持つ。開発リポジトリ内の以下2つとは役割が異なるので混同しないこと。
+
+- `.agent-skills/`（消費側）… スキル利用者の端末/プロジェクト（`<repo root>/` と `$HOME/`）に置く、ユーザーのカスタマイズ設定とフィードバックログ。スキル本体には含めず、`references/` には「規約・様式」だけを持つ。
+- `.local/`（消費側）… terraform 系スキルが使う再生成可能なキャッシュ。
+- `.skill-workspaces/`（開発側）… skill-creator の評価・ベンチ成果物。
+
+overlay/feedback の実装は横断的な共有スキルにせず、**各スキルの `references/` に自己完結でカプセル化**する（リファレンス実装は `skills/commit/`）。オーバーレイは専用拡張子 `.overlay.md` で**2系統**（予約名 `<既定ファイル名>.overlay.md` は同名の既定 references ファイルの差し替え、それ以外の `*.overlay.md` は必ず追加読み込み）。feedback は**コミットさせない**ため、root の `.gitignore` ではなく `.agent-skills/<skill>/.gitignore`（中身 `feedback.md`）で自己完結に除外する（overlay 系はコミット可能なまま）。
