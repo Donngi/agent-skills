@@ -1,0 +1,842 @@
+{
+  "note": "V14 の保守用の対応表。実行役には読ませない。rules は、採点項目の規則 ID ごとに、その規則の本文がある SKILL.md・references のファイル（どれか1つに届けばよい）。build.py --check が、各ケースの reading_rows（evals.src.json）で選ぶ SKILL.md「読む計画」の行から、そのケースに配る規則の本文のファイルに届くことを確かめる。moved は V14 で移した節、changed_lines は移動・読み方の整理のために文言を変えた行（これ以外で規則の文は変えていない）。",
+  "rules": {
+    "answer-accurate": [
+      "SKILL.md"
+    ],
+    "await-rejects": [
+      "references/test-style.md"
+    ],
+    "brand-no-export": [
+      "references/naming.md",
+      "references/checklist-model.md"
+    ],
+    "brand-output": [
+      "references/pitfalls.md",
+      "references/checklist-model.md"
+    ],
+    "brand-symbol": [
+      "SKILL.md"
+    ],
+    "brand-present": [
+      "SKILL.md"
+    ],
+    "caught-position": [
+      "references/test-style.md"
+    ],
+    "client-failure-identity": [
+      "references/test-style-mocks.md"
+    ],
+    "comment-accurate": [
+      "references/comments.md"
+    ],
+    "comment-period": [
+      "references/comments.md"
+    ],
+    "constraint-isolated": [
+      "references/testing.md"
+    ],
+    "convert-error": [
+      "references/errors.md",
+      "references/persistence.md"
+    ],
+    "coverage-branches": [
+      "references/test-style-coverage.md"
+    ],
+    "coverage-decision": [
+      "references/test-style-coverage.md"
+    ],
+    "coverage-exclusions-reported": [
+      "references/test-style-coverage.md",
+      "references/testing.md"
+    ],
+    "coverage-no-ignore": [
+      "references/test-style-coverage.md"
+    ],
+    "coverage-targets": [
+      "references/test-style-coverage.md"
+    ],
+    "create-error": [
+      "references/errors.md"
+    ],
+    "create-tail-kind": [
+      "references/model-code.md",
+      "references/errors.md",
+      "references/checklist-model.md"
+    ],
+    "deps": [
+      "SKILL.md"
+    ],
+    "deps-type-place": [
+      "SKILL.md"
+    ],
+    "deps-value-check": [
+      "SKILL.md",
+      "references/checklist-model.md"
+    ],
+    "dto-local-name": [
+      "references/naming.md"
+    ],
+    "dto-minimal-export": [
+      "references/persistence.md"
+    ],
+    "dto-name-suffix": [
+      "references/naming.md"
+    ],
+    "dto-no-transform": [
+      "references/persistence.md"
+    ],
+    "dto-oracle-independent": [
+      "references/testing-infra.md",
+      "references/test-style.md"
+    ],
+    "dto-plain-export": [
+      "references/persistence.md"
+    ],
+    "dto-shape": [
+      "references/persistence.md"
+    ],
+    "dto-strict": [
+      "references/persistence.md"
+    ],
+    "dto-sync-only": [
+      "references/persistence.md",
+      "SKILL.md"
+    ],
+    "dto-to-check": [
+      "references/persistence.md"
+    ],
+    "entry-only": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "error-domain-type": [
+      "references/errors.md"
+    ],
+    "error-fatal-shape": [
+      "references/errors.md"
+    ],
+    "error-message-form": [
+      "references/errors.md"
+    ],
+    "error-message-owned": [
+      "references/errors.md"
+    ],
+    "error-message-same": [
+      "references/errors.md"
+    ],
+    "error-no-instance-helper": [
+      "references/errors.md"
+    ],
+    "error-specific-name": [
+      "references/errors.md"
+    ],
+    "error-target-id": [
+      "references/errors.md"
+    ],
+    "error-zod-wrap": [
+      "references/errors.md"
+    ],
+    "exact-optional": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "expected-in-then": [
+      "references/test-style.md"
+    ],
+    "fatal-scope": [
+      "references/errors.md"
+    ],
+    "frozen": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "gwt": [
+      "references/test-style.md"
+    ],
+    "gwt-accurate": [
+      "references/test-style.md",
+      "references/comments.md"
+    ],
+    "gwt-adjacent": [
+      "references/test-style.md"
+    ],
+    "gwt-and": [
+      "references/test-style.md"
+    ],
+    "gwt-enum-pair": [
+      "references/test-style.md"
+    ],
+    "gwt-invalid-word": [
+      "references/test-style.md"
+    ],
+    "gwt-no-var-name": [
+      "references/test-style.md"
+    ],
+    "gwt-placement": [
+      "references/test-style.md"
+    ],
+    "gwt-role-word": [
+      "references/test-style.md"
+    ],
+    "gwt-sentence": [
+      "references/test-style.md"
+    ],
+    "gwt-value-use": [
+      "references/test-style.md"
+    ],
+    "helper-exclude": [
+      "references/test-style.md",
+      "references/test-style-helpers.md",
+      "SKILL.md"
+    ],
+    "helper-file": [
+      "references/test-style-helpers.md"
+    ],
+    "helper-no-test": [
+      "references/test-style-helpers.md"
+    ],
+    "helper-not-imported": [
+      "references/test-style.md",
+      "references/test-style-helpers.md"
+    ],
+    "helper-only-models": [
+      "references/test-style-helpers.md"
+    ],
+    "helper-params": [
+      "references/test-style-helpers.md"
+    ],
+    "helper-reconstruct": [
+      "references/test-style-helpers.md"
+    ],
+    "identity-criterion": [
+      "SKILL.md"
+    ],
+    "impl-deps-name": [
+      "references/naming.md"
+    ],
+    "impl-factory-export": [
+      "references/persistence.md"
+    ],
+    "impl-factory-name": [
+      "references/persistence.md"
+    ],
+    "impl-no-model-object": [
+      "references/model-code.md",
+      "references/persistence.md"
+    ],
+    "impl-storage-neutral": [
+      "references/naming.md"
+    ],
+    "infra-public-api": [
+      "references/persistence.md"
+    ],
+    "jsdoc-class-word": [
+      "references/comments.md",
+      "references/errors.md"
+    ],
+    "jsdoc-no-copy": [
+      "SKILL.md",
+      "references/comments.md"
+    ],
+    "jsdoc-tags": [
+      "references/comments.md"
+    ],
+    "key-absent-in": [
+      "references/test-style.md",
+      "references/testing.md"
+    ],
+    "key-one-place": [
+      "references/persistence.md"
+    ],
+    "local-name": [
+      "references/naming.md"
+    ],
+    "mock-client": [
+      "references/test-style-mocks.md",
+      "references/testing.md"
+    ],
+    "mock-dep-key": [
+      "references/test-style-mocks.md"
+    ],
+    "mock-name": [
+      "references/test-style-mocks.md"
+    ],
+    "no-cast": [
+      "SKILL.md",
+      "references/checklist.md"
+    ],
+    "no-codec": [
+      "references/persistence.md"
+    ],
+    "no-default": [
+      "SKILL.md",
+      "references/pitfalls.md"
+    ],
+    "no-domain-const": [
+      "references/persistence.md"
+    ],
+    "no-echo-comment": [
+      "references/comments.md"
+    ],
+    "no-expect-in-catch": [
+      "references/test-style.md"
+    ],
+    "no-extra-api": [
+      "SKILL.md"
+    ],
+    "no-extract": [
+      "SKILL.md"
+    ],
+    "no-false-positive": [
+      "SKILL.md"
+    ],
+    "no-guard": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "no-in-source": [
+      "references/test-style.md",
+      "references/test-style-other.md"
+    ],
+    "no-invention": [
+      "SKILL.md"
+    ],
+    "no-meta": [
+      "references/comments.md"
+    ],
+    "no-nested-ternary": [
+      "references/model-code.md",
+      "references/checklist.md"
+    ],
+    "no-not-tothrow": [
+      "references/test-style.md"
+    ],
+    "no-op-schema": [
+      "references/model-code.md"
+    ],
+    "no-outside-spread": [
+      "SKILL.md"
+    ],
+    "no-provisional-limit": [
+      "SKILL.md"
+    ],
+    "no-raw-error": [
+      "SKILL.md",
+      "references/errors.md"
+    ],
+    "no-transform": [
+      "SKILL.md"
+    ],
+    "no-translate": [
+      "references/comments.md"
+    ],
+    "one-call": [
+      "references/test-style.md"
+    ],
+    "one-contract": [
+      "references/test-style.md"
+    ],
+    "op-signature": [
+      "references/model-code.md"
+    ],
+    "props-branded": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "props-derive": [
+      "references/model-code.md"
+    ],
+    "props-derived-source": [
+      "references/model-code.md"
+    ],
+    "props-output": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "props-readonly": [
+      "references/model-code.md"
+    ],
+    "props-two-stage": [
+      "references/model-code.md"
+    ],
+    "public-api": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "public-api-object": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "public-api-section": [
+      "references/model-code.md"
+    ],
+    "readonly-nested": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "reconstruct-callers": [
+      "SKILL.md"
+    ],
+    "reconstruct-failure": [
+      "references/errors.md"
+    ],
+    "reconstruct-function": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "reconstruct-minimal": [
+      "references/test-style.md"
+    ],
+    "refine-each-rejected": [
+      "references/testing.md"
+    ],
+    "safe-parse": [
+      "SKILL.md",
+      "references/errors.md"
+    ],
+    "satisfies": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "schema-outside": [
+      "references/model-code.md",
+      "references/naming.md"
+    ],
+    "section-placement": [
+      "references/model-code.md",
+      "references/checklist-model.md"
+    ],
+    "state-key": [
+      "references/model-code.md"
+    ],
+    "strict": [
+      "SKILL.md",
+      "references/model-code.md"
+    ],
+    "strict-equal": [
+      "references/test-style.md"
+    ],
+    "sync-only": [
+      "SKILL.md"
+    ],
+    "table-for": [
+      "references/test-style.md"
+    ],
+    "table-name": [
+      "references/test-style.md"
+    ],
+    "table-no-branch": [
+      "references/test-style.md"
+    ],
+    "table-same-contract": [
+      "references/test-style.md"
+    ],
+    "test-describe-flat": [
+      "references/test-style.md"
+    ],
+    "test-describe-unit": [
+      "references/test-style.md"
+    ],
+    "test-file-place": [
+      "references/test-style.md"
+    ],
+    "test-name-error-class": [
+      "references/test-style.md"
+    ],
+    "test-name-predicate": [
+      "references/test-style.md"
+    ],
+    "test-name-prefix": [
+      "references/test-style.md"
+    ],
+    "test-not-it": [
+      "references/test-style.md"
+    ],
+    "test-oracle-independent": [
+      "references/test-style.md",
+      "references/testing.md"
+    ],
+    "test-order": [
+      "references/test-style.md"
+    ],
+    "test-power": [
+      "references/testing.md",
+      "references/test-style.md"
+    ],
+    "test-subject-exists": [
+      "references/testing.md"
+    ],
+    "tests-run": [
+      "references/checklist-tests.md"
+    ],
+    "throw-concrete": [
+      "references/test-style.md"
+    ],
+    "throws": [
+      "references/comments.md",
+      "references/errors.md"
+    ],
+    "ts-expect-error-scope": [
+      "references/test-style.md",
+      "references/test-style-type-tests.md",
+      "references/pitfalls.md"
+    ],
+    "type-test-call": [
+      "references/test-style-type-tests.md"
+    ],
+    "type-test-config": [
+      "references/test-style-type-tests.md",
+      "SKILL.md"
+    ],
+    "type-test-file": [
+      "references/test-style-type-tests.md"
+    ],
+    "type-test-per-field": [
+      "references/testing.md"
+    ],
+    "type-test-scope": [
+      "references/test-style-type-tests.md",
+      "references/testing.md"
+    ],
+    "type-test-single": [
+      "references/test-style-type-tests.md"
+    ],
+    "typecheck": [
+      "references/checklist-tests.md",
+      "references/testing.md"
+    ],
+    "error-owner-file": [
+      "references/errors.md",
+      "references/checklist-model.md"
+    ],
+    "error-shared-no-model-import": [
+      "references/errors.md",
+      "references/checklist-model.md"
+    ]
+  },
+  "moved": [
+    {
+      "from": "references/test-style.md#`errors.ts` のテスト",
+      "to": "references/test-style-errors-tests.md#エラー class のテスト"
+    }
+  ],
+  "moved_files": [
+    {
+      "from": "evals/scripts/check.mjs",
+      "to": "scripts/check.mjs"
+    }
+  ],
+  "changed_lines": [
+    {
+      "file": "SKILL.md",
+      "old": "2. **該当するパターンを読む**（`references/patterns.md` の目次で引き、`example/` の実物を読む）",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "3. **実装する**（書くものに応じて、下の表の references を読む）",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "4. **テストを書く**（観点は `references/testing.md` と、書いたモデルの種類に当たる `references/testing-*.md` を網羅する。書き方は `references/test-style.md`。既存の流儀との擦り合わせは `test-style.md` の「どの書き方に従うか」）",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "5. **formatter と linter を通す**（そのプロジェクトの設定で。実装例の折り返し位置を手で真似ない）",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "6. **完了を確認する**（`references/checklist.md` と、書いたものに当たる `references/checklist-*.md`。適用の考え方は下の「完了の確認」）",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| 書くもの | 書く前に読むもの |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| どのモデルでも | `references/patterns.md` の該当パターンと、そこに書いた `example/` の実物。`references/naming.md` |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| 値オブジェクト・エンティティの生成と復元 | `references/model-code.md` の「公開の形」「入口を create と reconstruct に絞る」「完成値スキーマの .readonly() と任意項目」「create の第1引数の作り方」「satisfies を付ける場所」「ファイルの書き方」 |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| 業務操作・演算・読み取り | `references/model-code.md` の「ファイルの書き方」「型を置くセクション」「業務操作で Zod を使わない」「決まりごとの置き場」 |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| 横断検証（`refine` / `superRefine`） | `references/model-code.md` の「superRefine に書く条件」、`references/pitfalls.md` の「例外の漏れ」「検証の順序」 |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| Zod の API（`z.url()`、`z.templateLiteral`、`.pick()` など） | `references/pitfalls.md` の該当する節（見出しで引く） |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| エラーを投げるコード、エラー class、スキーマのメッセージ | `references/errors.md` |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| DTO、リポジトリ実装、ドメインサービスの実装、保存キー | `references/persistence.md`、`references/model-code.md` の「分岐の書き方」 |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| JSDoc、`//` コメント | `references/comments.md` |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| テスト | `references/testing.md` と、その冒頭の表で選ぶ `references/testing-*.md`（値オブジェクト・エンティティ・エラー・インフラ）。`references/test-style.md` と、その冒頭の表で選ぶ `references/test-style-*.md` |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| 完了の確認 | `references/checklist.md` と、その冒頭の表で選ぶ `references/checklist-*.md`（モデル・インフラ・コメントとメッセージ・テスト） |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| `references/testing.md` | 網羅すべきテストの観点のうち、どのモデルにも共通のもの。型のテストを置くモデル、到達しない分岐。冒頭の表で、モデルの種類ごとの観点のファイルを選ぶ |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| `references/test-style.md` | テストの書き方のうち、どのテストでも読むもの。どの書き方に従うかの判断、置き場と命名、Given / When / Then、テーブル駆動。冒頭の表で、ほかに読むファイルを選ぶ |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| `references/test-style-helpers.md` / `test-style-mocks.md` / `test-style-type-tests.md` / `test-style-coverage.md` / `test-style-other.md` | ダミー生成ヘルパー、クライアントのモック、型のテスト、カバレッジ、Vitest 以外と in-source testing の書き方 |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "| `references/checklist.md` | 完了の確認に使うチェックリストのうち、どの成果物にも共通の項目。冒頭の表で、ほかに通すファイルを選ぶ |",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "SKILL.md",
+      "old": "**項目は `references/checklist.md` と、その冒頭の表で選ぶ `references/checklist-*.md` にある。実装とテストを書き終えたら、それらを上から通す。**",
+      "reason": "読み方の表と手順（「読む計画」の表に置き換えた。参照の表の説明から「冒頭の表で選ぶ」を外した）"
+    },
+    {
+      "file": "references/checklist-docs.md",
+      "old": "- [ ] JSDoc のタグが `@throws`（と廃止予定の `@deprecated`）だけで、`@param` `@returns` `@remarks` `@example` を使っていない",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-docs.md",
+      "old": "- [ ] `//` のコメントの最後の行に句点が付いていない（途中の文は句点で区切っている）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-model.md",
+      "old": "- [ ] ブランドが `unique symbol` で、記号を export していない",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-model.md",
+      "old": "- [ ] エンティティのブランドが出力側だけに付いている",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-model.md",
+      "old": "- [ ] `parse` / `safeParse` にキーを持つオブジェクトリテラルを渡している箇所すべてに `satisfies XxxSchemaInput` が付いている（配列リテラルには付けない）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-model.md",
+      "old": "- [ ] `value is Xxx` を返す関数（型ガード）が1つもない。既存の完成値を状態で絞る述語も書いていない",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-model.md",
+      "old": "- [ ] 業務の規則1つにつきエラー class が1つで、具象のメッセージを class の中で決めている（呼び出し側から文を受け取っていない）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-model.md",
+      "old": "- [ ] `FatalUnreachableError` を `errors.ts` に定義し、`DomainError` を継承させていない",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-tests.md",
+      "old": "- [ ] テストが `references/test-style.md` の書き方に沿っている（Given / When / Then、1テスト1契約、`test.for`、`toThrow(具象の class)`、`toStrictEqual`）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-tests.md",
+      "old": "- [ ] すべての `// Given:` `// When:` `// Then:` に説明があり、そのセクションのコードと食い違っていない（テストを直したら説明も直している）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist-tests.md",
+      "old": "- [ ] `references/testing.md`「型のテストを置くモデル」の3か所（create の第1引数・業務操作のパラメータ・エラーのコンストラクタ引数）に当たる引数を持つモデルと `errors.ts` に `Xxx.test-d.ts` があり、型検査を有効にした `vitest run` の結果に型のテストが出て、すべて成功している（単一プリミティブの値オブジェクトと列挙には置いていない）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist.md",
+      "old": "当たらないファイルは読まなくてよい。",
+      "reason": "「SKILL.md の表が正」の1行を足した"
+    },
+    {
+      "file": "references/checklist.md",
+      "old": "- [ ] 型アサーションの `as`（`as const` を除く）が1つもない（名前空間の import の `import type * as z` は対象外）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/checklist.md",
+      "old": "- [ ] 三項演算子がネストしていない（3つ以上に分かれる分岐が `switch` になっている）",
+      "reason": "〔check.mjs〕の印を付けた"
+    },
+    {
+      "file": "references/model-code.md",
+      "old": "| 書くもの | 読む節 |",
+      "reason": "各ファイル冒頭の読み方の表（ファイル名だけにした。model-code.md は目次にした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/ProjectId.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/Timestamp.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/UserId.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/CommentId.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/Label.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/TaskId.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/Priority.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/PullRequestUrl.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/Estimate.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/WorkPeriod.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/value-object/Labels.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/entity/Project.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/entity/Task.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/entity/Comment.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/infrastructure/dto/DynamoDBTaskItemDTO.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/infrastructure/repository-impl/TaskRepositoryImpl.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/infrastructure/domain-service-impl/TaskNumberIssuerImpl.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/patterns.md",
+      "old": "実物: `example/domain/errors.ts`",
+      "reason": "相互参照（example の実物を実装・テスト・ヘルパー・型のテストで名指しした）"
+    },
+    {
+      "file": "references/test-style.md",
+      "old": "**この文書は、どのテストを書くときも読む。** 書くテストに応じて、次のファイルも読む。",
+      "reason": "各ファイル冒頭の読み方の表（ファイル名だけにした。model-code.md は目次にした）"
+    },
+    {
+      "file": "references/test-style.md",
+      "old": "| どのテストでも | この文書の全体（「どの書き方に従うか」「範囲」「置き場と命名」「1つのテストで確かめること」「Given / When / Then」「テーブル駆動」「assertion の選び方」） |",
+      "reason": "各ファイル冒頭の読み方の表（ファイル名だけにした。model-code.md は目次にした）"
+    },
+    {
+      "file": "references/test-style.md",
+      "old": "| `errors.ts` のテスト | この文書の「1つのテストで確かめること」の「`errors.ts` のテスト」 |",
+      "reason": "各ファイル冒頭の読み方の表（ファイル名だけにした。model-code.md は目次にした）"
+    },
+    {
+      "file": "references/test-style.md",
+      "old": "| 型のテスト（`Xxx.test-d.ts`） | `references/test-style-type-tests.md`。何を置くかは `testing.md`「型のテストを置くモデル」 |",
+      "reason": "各ファイル冒頭の読み方の表（ファイル名だけにした。model-code.md は目次にした）"
+    },
+    {
+      "file": "references/test-style.md",
+      "old": "| Vitest 以外のライブラリ | `references/test-style-other.md` の「Vitest 以外で書くとき」 |",
+      "reason": "各ファイル冒頭の読み方の表（ファイル名だけにした。model-code.md は目次にした）"
+    },
+    {
+      "file": "references/test-style.md",
+      "old": "| テストを実装ファイルの中に書くか迷ったとき | `references/test-style-other.md` の「in-source testing」 |",
+      "reason": "各ファイル冒頭の読み方の表（ファイル名だけにした。model-code.md は目次にした）"
+    },
+    {
+      "file": "references/test-style.md",
+      "old": "上の表の「捕まえた例外の種別と `operation`」は、**対象操作が投げた例外を捕まえたとき**の話である。",
+      "reason": "位置語（節を test-style-errors-tests.md に移したので「上の表」を書き直した）"
+    },
+    {
+      "file": "references/testing.md",
+      "old": "当たらない種類のファイルは読まなくてよい。",
+      "reason": "「SKILL.md の表が正」の1行を足した"
+    }
+  ]
+}

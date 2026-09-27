@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"exactOptionalPropertyTypes": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitReturns": true,
+		"noImplicitOverride": true,
+		// エラー class を置いたインターフェースのファイルは、モデルの型を型としてだけ参照する。
+		// type を書き忘れると実行時にモデルを読み込む依存が増えるので、型検査で止める
+		"verbatimModuleSyntax": true,
+		"noEmit": true,
+		"skipLibCheck": true,
+		// vitest.config.ts の import.meta.dirname は Node の API なので、node の型が要る
+		"types": ["node", "vitest/importMeta"]
+	},
+	"include": ["**/*.ts"]
+}

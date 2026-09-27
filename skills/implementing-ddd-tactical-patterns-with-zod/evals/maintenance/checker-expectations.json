@@ -1,0 +1,290 @@
+{
+  "note": "scripts/check.mjs（スキル直下）の自己テストの期待値。build.py --check-script が使う。期待値は check.mjs の出力から写さず、規則の文（evals.src.json）と expected-violations から決める。true は規則の全体を満たす、false は確実な違反、null はスクリプトでは決めない（採点役が判定する）。",
+  "checker": [
+    {
+      "dir": "config/ok",
+      "expect": {
+        "helper-exclude": true,
+        "type-test-config": true
+      }
+    },
+    {
+      "dir": "config/ng",
+      "note": "exclude と typecheck.enabled: true をコメントにだけ書いている（V9）",
+      "expect": {
+        "helper-exclude": false,
+        "type-test-config": false
+      }
+    },
+    {
+      "dir": "config/null",
+      "note": "設定を別のファイルの変数から組み立てている",
+      "expect": {
+        "helper-exclude": null,
+        "type-test-config": null
+      }
+    },
+    {
+      "dir": "test-alias/ok",
+      "note": "test・describe・expect を別名で import している",
+      "expect": {
+        "gwt": true,
+        "test-not-it": true
+      }
+    },
+    {
+      "dir": "test-alias/ng",
+      "note": "名前空間の import（v.it）で、見出しが無い",
+      "expect": {
+        "gwt": false,
+        "test-not-it": false
+      }
+    },
+    {
+      "dir": "test-alias/null",
+      "note": "テストのファイルなのにテストの呼び出しを見つけられない",
+      "expect": {
+        "gwt": null,
+        "test-not-it": null
+      }
+    },
+    {
+      "dir": "impl/ok",
+      "expect": {
+        "impl-factory-name": true,
+        "impl-factory-export": true,
+        "impl-deps-name": true
+      }
+    },
+    {
+      "dir": "impl/ng",
+      "note": "生成関数が createXxxImpl の形でない。createXxxImpl が無いので依存の型は特定しない",
+      "expect": {
+        "impl-factory-name": false,
+        "impl-factory-export": true,
+        "impl-deps-name": null
+      }
+    },
+    {
+      "dir": "impl/ng2",
+      "note": "生成関数を default で export し、依存の型が Deps",
+      "expect": {
+        "impl-factory-name": true,
+        "impl-factory-export": false,
+        "impl-deps-name": false
+      }
+    },
+    {
+      "dir": "dto/null",
+      "expect": {
+        "dto-plain-export": null,
+        "section-placement": null
+      }
+    },
+    {
+      "dir": "dto/ng",
+      "note": "DTO のファイルで関数を集めたオブジェクトを export している",
+      "expect": {
+        "dto-plain-export": false
+      }
+    },
+    {
+      "dir": "section/null",
+      "expect": {
+        "section-placement": null
+      }
+    },
+    {
+      "dir": "section/ng",
+      "note": "「スキーマ・型定義」のセクションに関数がある",
+      "expect": {
+        "section-placement": false
+      }
+    },
+    {
+      "dir": "test-style/null",
+      "expect": {
+        "throw-concrete": null,
+        "no-expect-in-catch": null,
+        "gwt-adjacent": null,
+        "gwt-invalid-word": null,
+        "gwt-no-var-name": null,
+        "expected-in-then": null,
+        "one-call": null,
+        "test-name-error-class": null,
+        "table-name": null
+      }
+    },
+    {
+      "dir": "test-style/ng",
+      "note": "toThrow(抽象の基底)・toThrow()、catch の中の expect、Then の前の空行の欠落と対象操作を実行しない隣接、「書き下ろした」、When より前の expected、class 名の無いテスト名、書式の無い test.for の名前。「不正な」と2回の呼び出しは候補として並べるだけ",
+      "expect": {
+        "throw-concrete": false,
+        "no-expect-in-catch": false,
+        "gwt-adjacent": false,
+        "gwt-invalid-word": null,
+        "gwt-no-var-name": false,
+        "expected-in-then": false,
+        "one-call": null,
+        "test-name-error-class": false,
+        "table-name": false
+      }
+    },
+    {
+      "dir": "helper/null",
+      "expect": {
+        "helper-reconstruct": null
+      }
+    },
+    {
+      "dir": "helper/ng",
+      "note": "ヘルパーが create で作っている",
+      "expect": {
+        "helper-reconstruct": false
+      }
+    },
+    {
+      "dir": "message/null",
+      "note": "メッセージを定数とテンプレートで組み立てている（動的な文字列は決めない）",
+      "expect": {
+        "error-message-form": null,
+        "error-message-owned": true
+      }
+    },
+    {
+      "dir": "message/ng",
+      "note": "依頼の形のメッセージ",
+      "expect": {
+        "error-message-form": false
+      }
+    },
+    {
+      "dir": "shared-errors/ok",
+      "expect": {
+        "error-shared-no-model-import": true
+      }
+    },
+    {
+      "dir": "shared-errors/ng",
+      "note": "共有のエラーのファイルが値オブジェクトの型を import し、モデルのエラーまで置いている",
+      "expect": {
+        "error-shared-no-model-import": false
+      }
+    },
+    {
+      "dir": "config/coverage-only",
+      "note": "helper の除外を coverage.exclude にだけ書き、typecheck.include が型のテストのファイルに当たらない形（W12）",
+      "expect": {
+        "helper-exclude": false,
+        "type-test-config": null
+      }
+    },
+    {
+      "dir": "brand/none",
+      "note": "列挙と DTO だけで .brand() が無い。宣言の仕方だけを見るので適用外（W11）",
+      "expect": {
+        "brand-symbol": true
+      }
+    },
+    {
+      "dir": "cast/ok",
+      "note": "as const と <const> は型アサーションに数えない",
+      "expect": {
+        "no-cast": true
+      }
+    },
+    {
+      "dir": "cast/ng",
+      "note": "<T>expr の形の型アサーション（W14）",
+      "expect": {
+        "no-cast": false
+      }
+    },
+    {
+      "dir": "error-class-name/null",
+      "note": "正しい例。送信したコマンドの toBeInstanceOf（AWS SDK と同じく変数の基底から継承する Error でない class）、new で作ったエラーを直接確かめるエラー class のテスト、型から系列を決められない構築子。どれも例外の検査の候補にしない（証拠だけの判定なので true は返さない）",
+      "expect": {
+        "test-name-error-class": null
+      }
+    }
+  ],
+  "fixtures": [
+    {
+      "dir": "library",
+      "false": []
+    },
+    {
+      "dir": "library-charge",
+      "false": []
+    },
+    {
+      "dir": "library-result",
+      "false": []
+    },
+    {
+      "dir": "warehouse/domain",
+      "false": []
+    },
+    {
+      "dir": "warehouse/infrastructure",
+      "note": "インフラだけのディレクトリ。.brand() が無いので brand-symbol は適用外（true）",
+      "false": []
+    },
+    {
+      "dir": "warehouse/reviewed-tests",
+      "note": "review-tests の V1（catch の中の expect と Then の前の空行）・V2（not.toThrow()）・V3（toThrow(DomainError)）・V5（ヘルパーの create）・V6（分岐するテーブルのテスト名）・V9（Xxx.test.ts の @ts-expect-error）",
+      "false": [
+        "gwt-adjacent",
+        "helper-reconstruct",
+        "no-expect-in-catch",
+        "no-not-tothrow",
+        "test-name-error-class",
+        "throw-concrete",
+        "type-test-file"
+      ]
+    },
+    {
+      "dir": "warehouse/review-domain",
+      "note": "review-domain の V3（文字列のブランド）・V4（as Quantity）・V10（PreconditionError に呼び出し側が文を渡す）・V13（依頼の形のメッセージ）",
+      "false": [
+        "brand-symbol",
+        "error-message-form",
+        "error-message-owned",
+        "no-cast"
+      ]
+    },
+    {
+      "dir": "warehouse/infrastructure-under-review",
+      "note": "review-infra の I3（as と satisfies 抜け）・I4（z.codec）・I8（生成関数の名前）・I9（メッセージ）・I10（スキーマ・型定義のセクションの関数）・I11（DTO の公開オブジェクト）",
+      "false": [
+        "dto-plain-export",
+        "error-message-form",
+        "impl-factory-name",
+        "no-cast",
+        "no-codec",
+        "satisfies",
+        "section-placement"
+      ]
+    },
+    {
+      "dir": "warehouse/legacy",
+      "note": "ケース23の直す前のコード（throw new Error・z.codec・文字列のブランド .brand<\"Sku\">()）",
+      "false": [
+        "brand-symbol",
+        "no-codec",
+        "no-raw-error"
+      ]
+    },
+    {
+      "dir": "shelf-app",
+      "note": "ケース19の既存の流儀（__tests__ の下の .spec.ts）。ケース19には test-style を配っていない",
+      "false": [
+        "gwt",
+        "test-file-place",
+        "test-name-error-class",
+        "test-name-prefix",
+        "type-test-file"
+      ]
+    }
+  ]
+}
