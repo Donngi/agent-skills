@@ -81,3 +81,6 @@ Temporary Items
 # --- Project-specific ---
 # skill-creator の評価実行成果物（ベンチ・採点・ログ）。再生成可能なため管理外。
 /.skill-workspaces/
+
+# ローカルの一時ファイル（評価の採点結果のまとめ・実行環境など）。管理外。
+/.local/
