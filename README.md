@@ -53,26 +53,6 @@ AI Agentで利用可能なスキル集です。
 - AWS Well-Architectedガイダンス、Checkovセキュリティスキャンに対応
 - 必須MCP server: `awslabs.terraform-mcp-server`, `aws-knowledge-mcp-server`
 
-### syncing-aidlc-workflows
-
-AWSの`aidlc-workflows`（AI-DLCワークフロー, `awslabs/aidlc-workflows`のv2ブランチ）のビルド済み成果物を、任意のプロジェクトに取り込み・差分アップデートするスキル。
-
-- ツール（現状Kiro）を選んでビルド済みアセットを配置（`node build.js`は実行せずコミット済みdistを直接利用）
-- 上流の更新を3-wayマージで取り込み、ローカルで加えた変更を保持（自動マージできる箇所は反映し、衝突箇所のみ停止）
-- 前回取り込み版との上流差分を確認可能。確定は2フェーズ（merge→finalize）で中断・ロールバックが安全
-- 取り込んだMarkdownの日本語訳を参考物として併せて保存（import/updateで差分翻訳）
-
-### generating-aidlc-claude-config
-
-`syncing-aidlc-workflows`が取り込んだKiro形式のAI-DLC成果物（`.kiro/`）から、Claude Code向けの設定一式（`.claude/`）を決定論的に生成するスキル。
-
-- 上流`awslabs/aidlc-workflows`はKiro用ビルドのみ配布のため、それをClaude Codeで動かせる形へ変換
-- 大半は`.kiro/`→`.claude/`の再配置で成立（コンテンツはinstall root相対パス設計）。Kiro固有の変換は3点のみ
-  - `agents/*.json`→`.claude/agents/*.md`（サブエージェント形式へ／ツール名写像 read→Read, write→Write,Edit, shell→Bash）
-  - `hooks/*.kiro.hook`→`.claude/settings.json`の`PostToolUse(Task)`フックへ変換し非破壊マージ
-  - `aidlc-common/**/*.js`内のハードコード`.kiro`パスを`.claude`へ書換え
-- 冪等で再実行可能（上流更新後は再実行するだけで`.claude/`が追従、settings.jsonのフックは重複しない）
-
 ### diagramming-domain-models
 
 DDDのドメインモデル図（エンティティ・バリューオブジェクト・集約境界・リポジトリの関係図）を自己完結HTMLとして生成するスキル。
