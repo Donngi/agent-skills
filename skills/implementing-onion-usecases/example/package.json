@@ -1,0 +1,20 @@
+{
+	"name": "onion-usecases-example",
+	"private": true,
+	"type": "module",
+	"description": "参照実装を単独で型検査・テストするための設定。スキルの成果物ではない。",
+	"comment-versions": "ここに書いた版は、この参照実装を検証したときの版であって、利用者のプロジェクトが使うべき版ではない。自分のプロジェクトでは既存の版に合わせること。",
+	"scripts": {
+		"typecheck": "tsc -p tsconfig.json",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"zod": "^4.6.0"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.1",
+		"@vitest/coverage-v8": "^5.0.1",
+		"typescript": "^6.0.3",
+		"vitest": "^5.0.1"
+	}
+}

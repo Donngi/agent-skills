@@ -1,0 +1,23 @@
+{
+	"name": "library-usecases-fixture",
+	"private": true,
+	"type": "module",
+	"description": "eval の fixture を単独で型検査・テストするための設定。",
+	"comment-versions": "ここに書いた版は、この fixture を検証したときの版であって、利用者のプロジェクトが使うべき版ではない。",
+	"scripts": {
+		"typecheck": "tsc -p tsconfig.json",
+		"test": "vitest run",
+		"format": "biome format --write .",
+		"check": "biome check ."
+	},
+	"dependencies": {
+		"zod": "^4.6.0"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.1",
+		"@vitest/coverage-v8": "^5.0.1",
+		"typescript": "^6.0.3",
+		"vitest": "^5.0.1",
+		"@biomejs/biome": "2.5.14"
+	}
+}

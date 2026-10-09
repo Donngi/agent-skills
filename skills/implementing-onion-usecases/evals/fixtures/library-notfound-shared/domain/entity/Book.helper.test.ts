@@ -1,0 +1,11 @@
+import { Book, type BookSchemaInput } from "./Book";
+
+export function createDummyBook(params: Partial<BookSchemaInput> = {}): Book {
+	return Book.reconstruct({
+		id: "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+		title: "ダミーの書名",
+		status: "onShelf",
+		reviews: [],
+		...params,
+	});
+}
