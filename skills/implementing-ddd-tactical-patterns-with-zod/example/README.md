@@ -81,6 +81,7 @@ infrastructure/
 | `domain/entity/Task.ts` | エンティティ: 複数状態（集約ルート） |
 | `domain/entity/Comment.ts` | エンティティ: エンティティがエンティティを内包する（子エンティティ） |
 | `domain/repository/TaskRepository.ts` | インフラ: 永続層のインターフェース |
+| `domain/repository/ProjectRepository.ts` | インフラ: 永続層のインターフェース（エラー class を持たない最小の形） |
 | `domain/domain-service/TaskNumberIssuer.ts` | インフラ: ドメインサービスのインターフェース |
 | `infrastructure/dto/DynamoDBTaskItemDTO.ts` | インフラ: DTO と変換 |
 | `infrastructure/repository-impl/TaskRepositoryImpl.ts` | インフラ: インターフェースの実装 |
@@ -100,6 +101,7 @@ infrastructure/
 
 インターフェースのファイル（`domain/repository/TaskRepository.ts`・`domain/domain-service/TaskNumberIssuer.ts`）のテストが確かめるのは、そこに置いたエラー class だけである。
 インターフェースの型そのものは実行時の振る舞いを持たないので、テストしない。振る舞いは実装のテスト（`TaskRepositoryImpl.test.ts`・`TaskNumberIssuerImpl.test.ts`）で確かめる。
+`domain/repository/ProjectRepository.ts` は、エラー class を持たないインターフェースの最小の形である。別のスキルの example がこのドメイン層を複製して `ProjectRepository` の取得だけを呼ぶので、`get` だけを置いている。消さない。この example に実装は無く、テストも置かない。
 
 本物の DynamoDB に接続するテストも置いていない。このスキルのテストの範囲外で、統合テストの仕組みで確かめる。
 
