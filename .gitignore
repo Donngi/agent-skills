@@ -187,6 +187,9 @@ web_modules/
 # Optional REPL history
 .node_repl_history
 
+# Output of 'npm pack'
+*.tgz
+
 # Yarn Integrity file
 .yarn-integrity
 
@@ -220,6 +223,7 @@ dist
 
 # vuepress v2.x temp and cache directory
 .temp
+.cache
 
 # Docusaurus cache and generated files
 .docusaurus
