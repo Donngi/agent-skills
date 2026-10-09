@@ -84,3 +84,6 @@ Temporary Items
 
 # ローカルの一時ファイル（評価の採点結果のまとめ・実行環境など）。管理外。
 /.local/
+
+# example や fixture で npm install したときの依存。
+node_modules/
