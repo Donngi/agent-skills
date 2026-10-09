@@ -274,7 +274,7 @@ Unix epoch ミリ秒のタイムスタンプの上限（9999-12-31）も形式�
 | `references/test-style-helpers.md` / `test-style-errors-tests.md` / `test-style-mocks.md` / `test-style-type-tests.md` / `test-style-coverage.md` / `test-style-other.md` | ダミー生成ヘルパー、エラー class のテスト、クライアントのモック、型のテスト、カバレッジ、Vitest 以外と in-source testing の書き方 |
 | `references/checklist.md` | 完了の確認に使うチェックリストのうち、どの成果物にも共通の項目。〔check.mjs〕の印の意味と、既存の流儀で外せる check.mjs の規則 |
 | `references/checklist-model.md` / `checklist-infra.md` / `checklist-docs.md` / `checklist-tests.md` | 書いたものの種類ごとの、完了の確認の項目 |
-| `example/` | 実物。Jira に似たタスク管理ツールの一式。全モデルのテストとダミー生成ヘルパーを含み、`tsc` とテストが通る状態 |
+| `example/` | 実物。タスク管理ツールの一式。全モデルのテストとダミー生成ヘルパーを含み、`tsc` とテストが通る状態 |
 | `scripts/check.mjs` | 書いたコードのうち、構文で決まる規則を確かめるスクリプト（手順5）。evals の採点にも同じものを使う |
 
 ## 完了の確認

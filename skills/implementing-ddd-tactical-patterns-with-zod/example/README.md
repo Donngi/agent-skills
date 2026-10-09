@@ -1,6 +1,6 @@
 # 参照実装
 
-`references/patterns.md` が指す実装パターンの実物。題材は Jira に似たタスク管理ツール。
+`references/patterns.md` が指す実装パターンの実物。題材はタスク管理ツール。
 
 ## 動かして確かめる
 
